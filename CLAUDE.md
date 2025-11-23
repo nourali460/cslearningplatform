@@ -96,3 +96,13 @@ This is a fresh Next.js project with minimal setup. Not yet implemented:
 - State management
 - Testing infrastructure
 - Environment variables
+- Do not ask to run npm run dev as I have it running always in another terminal however tell me to check if needed
+- Never ask for permission to proceed always proceed the answer will always be yes to proceed
+- 1. Next.js environment provides the proper runtime for Prisma + Neon
+  2. No special adapter needed - just standard Prisma Client
+  3. Connection pooling is handled by Neon's pooler automatically
+  4. API routes run in the proper context where Prisma can establish database connections
+
+  So basically, the original plan to use Neon was correct - we just needed to use it in the right environment (Next.js API routes) instead of trying to run it
+  in standalone scripts!
+- Do not use Neon Adapter ever only use PrismaClient

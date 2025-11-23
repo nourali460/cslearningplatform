@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(sudo -S npm cache clean:*)",
+      "Bash(lsof:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

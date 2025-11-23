@@ -1,0 +1,148 @@
+// ---------------------------------------------------------
+// Prisma schema for core learning platform
+// ---------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------
+// USERS  (Clerk → local user profile)
+// ---------------------------------------------------------
+
+model User {
+  id         String   @id @default(uuid()) @db.Uuid
+  clerkId    String   @unique
+  role       String   // 'professor' | 'student' | 'admin'
+  email      String   @unique
+  fullName   String?
+  username   String?  @unique                // For professors, used in class codes
+  isApproved Boolean  @default(true)         // Professors need approval to create classes
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  professorClasses Class[]                  @relation("ProfessorClasses")
+  enrollments      Enrollment[]             @relation("StudentEnrollments")
+  submissions      AssessmentSubmission[]   @relation("SubmissionStudent")
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------
+// COURSES  (Global course catalog)
+// ---------------------------------------------------------
+
+model Course {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique             // e.g. 'CS101'
+  title       String                      // e.g. 'Intro to Java'
+  description String?
+  subject     String?
+  level       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  classes     Class[]
+
+  @@map("courses")
+}
+
+// ---------------------------------------------------------
+// CLASSES  (A professor teaching a course in a term)
+// ---------------------------------------------------------
+
+model Class {
+  id           String   @id @default(uuid()) @db.Uuid
+  courseId     String   @db.Uuid
+  professorId  String   @db.Uuid
+  title        String                       // e.g. 'CS101 Section 01'
+  term         String                       // e.g. 'Fall'
+  year         Int                          // e.g. 2025
+  section      String?
+  classCode    String   @unique             // e.g. 'ALI-CS101-FA25-01'
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  course       Course       @relation(fields: [courseId],    references: [id])
+  professor    User         @relation("ProfessorClasses", fields: [professorId], references: [id])
+  enrollments  Enrollment[]
+  assessments  Assessment[]
+
+  @@map("classes")
+}
+
+// ---------------------------------------------------------
+// ENROLLMENTS  (Students joining a class)
+// ---------------------------------------------------------
+
+model Enrollment {
+  id         String   @id @default(uuid()) @db.Uuid
+  classId    String   @db.Uuid
+  studentId  String   @db.Uuid
+  status     String   @default("active")
+  createdAt  DateTime @default(now())
+
+  // Relations
+  class      Class @relation(fields: [classId],   references: [id])
+  student    User  @relation("StudentEnrollments", fields: [studentId], references: [id])
+
+  @@unique([classId, studentId])
+  @@map("enrollments")
+}
+
+// ---------------------------------------------------------
+// ASSESSMENTS  (Labs / assignments / exams)
+// ---------------------------------------------------------
+
+model Assessment {
+  id          String   @id @default(uuid()) @db.Uuid
+  classId     String   @db.Uuid
+  title       String
+  slug        String
+  description String?
+  dueAt       DateTime?
+  maxPoints   Decimal  @default("100.00") @db.Decimal(5, 2)
+  orderIndex  Int?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  class       Class                  @relation(fields: [classId], references: [id])
+  submissions AssessmentSubmission[]
+
+  @@map("assessments")
+}
+
+// ---------------------------------------------------------
+// ASSESSMENT SUBMISSIONS  (Grades + attempts + feedback)
+// ---------------------------------------------------------
+
+model AssessmentSubmission {
+  id             String   @id @default(uuid()) @db.Uuid
+  assessmentId   String   @db.Uuid
+  studentId      String   @db.Uuid
+  submittedAt    DateTime @default(now())
+  autoScore      Decimal?  @db.Decimal(5, 2)
+  manualScore    Decimal?  @db.Decimal(5, 2)
+  totalScore     Decimal?  @db.Decimal(5, 2)
+  feedback       String?  // final combined feedback text
+  feedbackFiles  Json?    // array/object of raw feedback blocks/logs
+  status         String?
+  attemptNumber  Int      @default(1)
+  createdAt      DateTime @default(now())
+
+  // Relations
+  assessment     Assessment @relation(fields: [assessmentId], references: [id])
+  student        User       @relation("SubmissionStudent", fields: [studentId], references: [id])
+
+  @@unique([assessmentId, studentId, attemptNumber])
+  @@map("assessment_submissions")
+}
