@@ -1,16 +1,14 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { db } from '@/lib/db'
-import { buildClassFilters, buildEnrollmentFilters, type AdminFilters } from '@/lib/admin-filters'
+import { buildClassFilters, buildEnrollmentFilters, getFilterOptions, type AdminFilters } from '@/lib/admin-filters'
 import { ProfessorApprovalToggle } from '@/components/admin/ProfessorApprovalToggle'
+import { AdminFilterBar } from '@/components/admin/AdminFilterBar'
+import { PasswordManager } from '@/components/admin/PasswordManager'
 
 export default async function PeoplePage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-  // Parse search params for filters
   const params = await searchParams
   const filters: AdminFilters = {
     term: params && typeof params.term === 'string' ? params.term : undefined,
@@ -18,44 +16,60 @@ export default async function PeoplePage({
     professorId: params && typeof params.professorId === 'string' ? params.professorId : undefined,
     courseId: params && typeof params.courseId === 'string' ? params.courseId : undefined,
     classId: params && typeof params.classId === 'string' ? params.classId : undefined,
+    studentId: params && typeof params.studentId === 'string' ? params.studentId : undefined,
+    assessmentId: params && typeof params.assessmentId === 'string' ? params.assessmentId : undefined,
   }
 
+  const filterOptions = await getFilterOptions(filters)
   const classWhere = buildClassFilters(filters)
   const enrollmentWhere = buildEnrollmentFilters(filters)
 
-  // Fetch all users with filtered activity counts
-  const [allStudents, professors, admins] = await Promise.all([
+  // Build student where clause based on filters
+  const studentWhere: any = { role: 'student' }
+  const professorWhere: any = { role: 'professor' }
+
+  // If filters are applied, we need to filter students/professors who have matching enrollments/classes
+  if (Object.keys(enrollmentWhere).length > 0) {
+    // Show only students with enrollments matching the filters
+    studentWhere.enrollments = { some: enrollmentWhere }
+  }
+
+  if (Object.keys(classWhere).length > 0) {
+    // Show only professors with classes matching the filters
+    professorWhere.professorClasses = { some: classWhere }
+  }
+
+  const [students, professors, admins] = await Promise.all([
     db.user.findMany({
-      where: { role: 'student' },
+      where: studentWhere,
       select: {
         id: true,
         fullName: true,
         email: true,
+        usernameSchoolId: true,
+        password: true,
         createdAt: true,
         _count: {
           select: {
-            enrollments: {
-              where: enrollmentWhere,
-            },
+            enrollments: true,
           },
         },
       },
       orderBy: { createdAt: 'desc' },
     }),
     db.user.findMany({
-      where: { role: 'professor' },
+      where: professorWhere,
       select: {
         id: true,
         fullName: true,
         email: true,
-        username: true,
+        usernameSchoolId: true,
+        password: true,
         isApproved: true,
         createdAt: true,
         _count: {
           select: {
-            professorClasses: {
-              where: classWhere,
-            },
+            professorClasses: true,
           },
         },
       },
@@ -67,85 +81,110 @@ export default async function PeoplePage({
         id: true,
         fullName: true,
         email: true,
+        usernameSchoolId: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
     }),
   ])
 
-  // Filter students based on "No Course" selection
-  const isNoCourseFilter = filters.courseId === 'no-course'
-  const students = isNoCourseFilter
-    ? allStudents.filter((student) => student._count.enrollments === 0)
-    : allStudents.filter((student) => student._count.enrollments > 0)
-
   const hasFilters = Object.keys(classWhere).length > 0
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">People</h1>
-        <p className="text-muted-foreground mt-2">
-          View and manage platform users. Use "No Course" filter to find students not enrolled in any classes.
-        </p>
+    <div>
+      {/* Header */}
+      <div className="mb-4">
+        <h1 className="display-5 fw-bold text-primary mb-2">👥 People Management</h1>
+        <p className="text-muted lead">View and manage platform users - students, professors, and admins.</p>
       </div>
 
-      <Tabs defaultValue="students" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="students">
-            Students ({students.length})
-          </TabsTrigger>
-          <TabsTrigger value="professors">
-            Professors ({professors.length})
-          </TabsTrigger>
-          <TabsTrigger value="admins">
-            Admins ({admins.length})
-          </TabsTrigger>
-        </TabsList>
+      {/* Filter Bar */}
+      <div className="mb-4">
+        <AdminFilterBar
+          options={filterOptions}
+          availableFilters={{
+            showStudent: false,
+            showTerm: true,
+            showYear: true,
+            showProfessor: false,
+            showCourse: true,
+            showClass: true,
+            showAssessment: false,
+          }}
+        />
+      </div>
 
+      {/* Tabs */}
+      <ul className="nav nav-pills mb-4" role="tablist">
+        <li className="nav-item" role="presentation">
+          <button className="nav-link active" id="students-tab" data-bs-toggle="pill" data-bs-target="#students" type="button" role="tab">
+            <span className="badge bg-primary me-2">{students.length}</span>
+            Students
+          </button>
+        </li>
+        <li className="nav-item" role="presentation">
+          <button className="nav-link" id="professors-tab" data-bs-toggle="pill" data-bs-target="#professors" type="button" role="tab">
+            <span className="badge bg-primary me-2">{professors.length}</span>
+            Professors
+          </button>
+        </li>
+        <li className="nav-item" role="presentation">
+          <button className="nav-link" id="admins-tab" data-bs-toggle="pill" data-bs-target="#admins" type="button" role="tab">
+            <span className="badge bg-primary me-2">{admins.length}</span>
+            Admins
+          </button>
+        </li>
+      </ul>
+
+      {/* Tab Content */}
+      <div className="tab-content" id="pills-tabContent">
         {/* Students Tab */}
-        <TabsContent value="students">
-          <Card>
-            <CardHeader>
-              <CardTitle>Students</CardTitle>
-              <CardDescription>
-                {isNoCourseFilter
-                  ? 'Students not enrolled in any classes'
-                  : `Students enrolled in classes${hasFilters ? ' (enrollment counts filtered by active filters)' : ''}`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+        <div className="tab-pane fade show active" id="students" role="tabpanel" aria-labelledby="students-tab">
+          <div className="card">
+            <div className="card-header bg-primary text-white">
+              <h5 className="card-title mb-0">📚 Students</h5>
+            </div>
+            <div className="card-body p-0">
               {students.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No students found
+                <div className="text-center py-5 text-muted">
+                  <p className="mb-0">No students found</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+                <div className="table-scroll">
+                  <table className="table table-hover mb-0">
                     <thead>
-                      <tr className="border-b text-left text-sm text-muted-foreground">
-                        <th className="pb-3 font-medium">Name</th>
-                        <th className="pb-3 font-medium">Email</th>
-                        <th className="pb-3 font-medium">
-                          {hasFilters ? 'Filtered ' : ''}Enrollments
-                        </th>
-                        <th className="pb-3 font-medium">Joined</th>
+                      <tr>
+                        <th className="text-white">Name</th>
+                        <th className="text-white">Email</th>
+                        <th className="text-white">School ID</th>
+                        <th className="text-white">Password</th>
+                        <th className="text-white">{hasFilters ? 'Filtered ' : ''}Enrollments</th>
+                        <th className="text-white">Joined</th>
                       </tr>
                     </thead>
                     <tbody>
                       {students.map((student) => (
-                        <tr key={student.id} className="border-b">
-                          <td className="py-3">
-                            {student.fullName || 'N/A'}
+                        <tr key={student.id}>
+                          <td className="fw-semibold">{student.fullName || 'N/A'}</td>
+                          <td className="text-muted">{student.email}</td>
+                          <td><code className="text-primary">{student.usernameSchoolId || '-'}</code></td>
+                          <td>
+                            <PasswordManager
+                              userId={student.id}
+                              initialPassword={student.password}
+                              userName={student.fullName || student.email}
+                              userRole="student"
+                            />
                           </td>
-                          <td className="py-3 text-muted-foreground">
-                            {student.email}
+                          <td>
+                            <span className="badge bg-info">{student._count.enrollments}</span>
                           </td>
-                          <td className="py-3">
-                            {student._count.enrollments}
-                          </td>
-                          <td className="py-3 text-sm text-muted-foreground">
-                            {new Date(student.createdAt).toLocaleDateString()}
+                          <td className="text-muted small">
+                            {new Date(student.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
                           </td>
                         </tr>
                       ))}
@@ -153,64 +192,65 @@ export default async function PeoplePage({
                   </table>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </div>
+        </div>
 
         {/* Professors Tab */}
-        <TabsContent value="professors">
-          <Card>
-            <CardHeader>
-              <CardTitle>Professors</CardTitle>
-              <CardDescription>
-                Professors registered on the platform
-                {hasFilters && ' (teaching counts filtered by active filters)'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+        <div className="tab-pane fade" id="professors" role="tabpanel" aria-labelledby="professors-tab">
+          <div className="card">
+            <div className="card-header bg-primary text-white">
+              <h5 className="card-title mb-0">👨‍🏫 Professors</h5>
+            </div>
+            <div className="card-body p-0">
               {professors.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No professors found
+                <div className="text-center py-5 text-muted">
+                  <p className="mb-0">No professors found</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+                <div className="table-scroll">
+                  <table className="table table-hover mb-0">
                     <thead>
-                      <tr className="border-b text-left text-sm text-muted-foreground">
-                        <th className="pb-3 font-medium">Name</th>
-                        <th className="pb-3 font-medium">Email</th>
-                        <th className="pb-3 font-medium">Username</th>
-                        <th className="pb-3 font-medium">
-                          {hasFilters ? 'Filtered ' : ''}Classes Teaching
-                        </th>
-                        <th className="pb-3 font-medium">Approval Status</th>
-                        <th className="pb-3 font-medium">Joined</th>
+                      <tr>
+                        <th className="text-white">Name</th>
+                        <th className="text-white">Email</th>
+                        <th className="text-white">School ID</th>
+                        <th className="text-white">Password</th>
+                        <th className="text-white">{hasFilters ? 'Filtered ' : ''}Classes Teaching</th>
+                        <th className="text-white">Approval Status</th>
+                        <th className="text-white">Joined</th>
                       </tr>
                     </thead>
                     <tbody>
                       {professors.map((professor) => (
-                        <tr key={professor.id} className="border-b">
-                          <td className="py-3">
-                            {professor.fullName || 'N/A'}
+                        <tr key={professor.id}>
+                          <td className="fw-semibold">{professor.fullName || 'N/A'}</td>
+                          <td className="text-muted">{professor.email}</td>
+                          <td><code className="text-primary">{professor.usernameSchoolId || '-'}</code></td>
+                          <td>
+                            <PasswordManager
+                              userId={professor.id}
+                              initialPassword={professor.password}
+                              userName={professor.fullName || professor.email}
+                              userRole="professor"
+                            />
                           </td>
-                          <td className="py-3 text-muted-foreground">
-                            {professor.email}
+                          <td>
+                            <span className="badge bg-info">{professor._count.professorClasses}</span>
                           </td>
-                          <td className="py-3 font-mono text-sm">
-                            {professor.username || <span className="text-muted-foreground italic">Not set</span>}
-                          </td>
-                          <td className="py-3">
-                            {professor._count.professorClasses}
-                          </td>
-                          <td className="py-3">
+                          <td>
                             <ProfessorApprovalToggle
                               userId={professor.id}
                               currentStatus={professor.isApproved}
                               professorName={professor.fullName || professor.email}
                             />
                           </td>
-                          <td className="py-3 text-sm text-muted-foreground">
-                            {new Date(professor.createdAt).toLocaleDateString()}
+                          <td className="text-muted small">
+                            {new Date(professor.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
                           </td>
                         </tr>
                       ))}
@@ -218,49 +258,48 @@ export default async function PeoplePage({
                   </table>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </div>
+        </div>
 
         {/* Admins Tab */}
-        <TabsContent value="admins">
-          <Card>
-            <CardHeader>
-              <CardTitle>Administrators</CardTitle>
-              <CardDescription>
-                Platform administrators with full access
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+        <div className="tab-pane fade" id="admins" role="tabpanel" aria-labelledby="admins-tab">
+          <div className="card">
+            <div className="card-header bg-primary text-white">
+              <h5 className="card-title mb-0">👑 Administrators</h5>
+            </div>
+            <div className="card-body p-0">
               {admins.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No administrators found
+                <div className="text-center py-5 text-muted">
+                  <p className="mb-0">No administrators found</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+                <div className="table-scroll">
+                  <table className="table table-hover mb-0">
                     <thead>
-                      <tr className="border-b text-left text-sm text-muted-foreground">
-                        <th className="pb-3 font-medium">Name</th>
-                        <th className="pb-3 font-medium">Email</th>
-                        <th className="pb-3 font-medium">Access Level</th>
-                        <th className="pb-3 font-medium">Joined</th>
+                      <tr>
+                        <th className="text-white">Name</th>
+                        <th className="text-white">Email</th>
+                        <th className="text-white">School ID</th>
+                        <th className="text-white">Access Level</th>
+                        <th className="text-white">Joined</th>
                       </tr>
                     </thead>
                     <tbody>
                       {admins.map((admin) => (
-                        <tr key={admin.id} className="border-b">
-                          <td className="py-3">
-                            {admin.fullName || 'N/A'}
+                        <tr key={admin.id}>
+                          <td className="fw-semibold">{admin.fullName || 'N/A'}</td>
+                          <td className="text-muted">{admin.email}</td>
+                          <td><code className="text-primary">{admin.usernameSchoolId || '-'}</code></td>
+                          <td>
+                            <span className="badge bg-danger">Full Access</span>
                           </td>
-                          <td className="py-3 text-muted-foreground">
-                            {admin.email}
-                          </td>
-                          <td className="py-3">
-                            <Badge variant="default">Full Access</Badge>
-                          </td>
-                          <td className="py-3 text-sm text-muted-foreground">
-                            {new Date(admin.createdAt).toLocaleDateString()}
+                          <td className="text-muted small">
+                            {new Date(admin.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
                           </td>
                         </tr>
                       ))}
@@ -268,10 +307,10 @@ export default async function PeoplePage({
                   </table>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

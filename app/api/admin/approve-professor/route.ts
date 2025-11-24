@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { requireAdmin, handleAuthError } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { z } from 'zod'
 
@@ -10,29 +10,14 @@ const approveSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    // 1. Authenticate user
-    const { userId: clerkId } = await auth()
-    if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // 1. Require admin authentication
+    await requireAdmin()
 
-    // 2. Get admin user from database
-    const adminUser = await db.user.findUnique({
-      where: { clerkId },
-    })
-
-    if (!adminUser || adminUser.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Forbidden. Admin access required.' },
-        { status: 403 }
-      )
-    }
-
-    // 3. Parse and validate request body
+    // 2. Parse and validate request body
     const body = await req.json()
     const { userId, isApproved } = approveSchema.parse(body)
 
-    // 4. Get the professor to approve
+    // 3. Get the professor to approve
     const professor = await db.user.findUnique({
       where: { id: userId },
     })
@@ -48,13 +33,13 @@ export async function POST(req: Request) {
       )
     }
 
-    // 5. Update approval status
+    // 4. Update approval status
     const updatedProfessor = await db.user.update({
       where: { id: userId },
       data: { isApproved },
     })
 
-    // 6. Return success
+    // 5. Return success
     return NextResponse.json(
       {
         message: isApproved
@@ -64,7 +49,7 @@ export async function POST(req: Request) {
           id: updatedProfessor.id,
           email: updatedProfessor.email,
           fullName: updatedProfessor.fullName,
-          username: updatedProfessor.username,
+          usernameSchoolId: updatedProfessor.usernameSchoolId,
           isApproved: updatedProfessor.isApproved,
         },
       },
@@ -80,11 +65,6 @@ export async function POST(req: Request) {
     }
 
     console.error('Error approving professor:', error)
-    return NextResponse.json(
-      {
-        error: 'An error occurred while updating professor approval status.',
-      },
-      { status: 500 }
-    )
+    return handleAuthError(error)
   }
 }

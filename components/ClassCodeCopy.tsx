@@ -1,9 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Check, Copy } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 
 export function ClassCodeCopy({ classCode }: { classCode: string }) {
   const [copied, setCopied] = useState(false)
@@ -19,23 +16,28 @@ export function ClassCodeCopy({ classCode }: { classCode: string }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Badge variant="outline" className="font-mono text-sm">
+    <div className="d-flex align-items-center gap-2">
+      <code className="badge bg-primary fs-6 font-monospace">
         {classCode}
-      </Badge>
-      <Button
-        variant="ghost"
-        size="sm"
+      </code>
+      <button
+        type="button"
+        className={`btn btn-sm ${copied ? 'btn-success' : 'btn-outline-primary'}`}
         onClick={handleCopy}
-        className="h-8 px-2"
-        title="Copy class code"
+        title={copied ? 'Copied!' : 'Copy class code'}
       >
         {copied ? (
-          <Check className="h-4 w-4 text-green-600" />
+          <>
+            <i className="bi bi-check2 me-1"></i>
+            Copied
+          </>
         ) : (
-          <Copy className="h-4 w-4" />
+          <>
+            <i className="bi bi-clipboard me-1"></i>
+            Copy
+          </>
         )}
-      </Button>
+      </button>
     </div>
   )
 }

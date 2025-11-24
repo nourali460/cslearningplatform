@@ -1,67 +1,97 @@
-import Link from 'next/link'
-import { UserButton } from '@clerk/nextjs'
-import { Separator } from '@/components/ui/separator'
-import { requireProfessor } from '@/lib/auth'
-import { redirect } from 'next/navigation'
+'use client'
 
-export default async function ProfessorLayout({
+import Link from 'next/link'
+import { LogoutButton } from '@/components/logout-button'
+import { usePathname } from 'next/navigation'
+import { BookOpen, ClipboardList, CheckSquare, Library, GraduationCap } from 'lucide-react'
+
+export default function ProfessorLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const user = await requireProfessor()
-
-  if (!user) {
-    redirect('/')
-  }
+  const pathname = usePathname()
 
   const navItems = [
-    { href: '/professor', label: 'Dashboard' },
-    { href: '/professor/classes', label: 'My Classes' },
-    { href: '/professor/assessments', label: 'Assessments' },
-    { href: '/professor/grading', label: 'Grading' },
+    { href: '/professor', label: 'Dashboard', icon: BookOpen },
+    { href: '/professor/courses', label: 'Available Courses', icon: Library },
+    { href: '/professor/students', label: 'Students', icon: GraduationCap },
+    { href: '/professor/assessments', label: 'Assessments', icon: ClipboardList },
+    { href: '/professor/grading', label: 'Grading', icon: CheckSquare },
   ]
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left Sidebar */}
-      <aside className="w-64 border-r bg-muted/40 p-6">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold">Professor Portal</h1>
-          <p className="text-sm text-muted-foreground mt-1">CS Learning Platform</p>
-        </div>
+    <div className="container-fluid p-0">
+      <div className="row g-0">
+        {/* Left Sidebar */}
+        <div className="col-md-3 col-lg-2" style={{
+          background: 'linear-gradient(180deg, #0d6efd 0%, #084298 100%)',
+          minHeight: '100vh',
+          color: 'white'
+        }}>
+          <div className="p-4">
+            {/* Header */}
+            <div className="mb-4">
+              <h1 className="h4 fw-bold mb-1">Professor Portal</h1>
+              <p className="small mb-0 opacity-75">CS Learning Platform</p>
+            </div>
 
-        <Separator className="mb-6" />
+            <hr className="border-white opacity-25 my-4" />
 
-        <nav className="space-y-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+            {/* Navigation */}
+            <nav className="mb-4">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const isActive = pathname === item.href
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`d-flex align-items-center text-decoration-none px-3 py-2 rounded mb-2 ${
+                      isActive
+                        ? 'bg-white text-primary fw-semibold'
+                        : 'text-white'
+                    }`}
+                    style={{
+                      transition: 'all 0.2s',
+                      ...(isActive ? {} : { opacity: 0.9 })
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                      }
+                    }}
+                  >
+                    <Icon size={18} className="me-2" />
+                    <span className="small">{item.label}</span>
+                  </Link>
+                )
+              })}
+            </nav>
 
-        <Separator className="my-6" />
+            <hr className="border-white opacity-25 my-4" />
 
-        <div className="space-y-2">
-          <div className="px-3">
-            <div className="text-xs text-muted-foreground mb-2">Logged in as:</div>
-            <div className="text-sm font-medium mb-2">{user.fullName || user.email}</div>
-            <UserButton afterSignOutUrl="/" />
+            {/* User Info - This will be populated by getting the user from cookies/session */}
+            <div className="px-3">
+              <div className="small opacity-75 mb-2">Logged in as:</div>
+              <div className="small fw-semibold mb-3">Professor</div>
+              <LogoutButton />
+            </div>
           </div>
         </div>
-      </aside>
 
-      {/* Main Content */}
-      <main className="flex-1">
-        <div className="container mx-auto p-8">
-          {children}
+        {/* Main Content */}
+        <div className="col-md-9 col-lg-10">
+          <div className="p-4 p-md-5">
+            {children}
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   )
 }

@@ -30,8 +30,7 @@ export function buildClassFilters(filters: AdminFilters): Prisma.ClassWhereInput
     where.professorId = filters.professorId
   }
 
-  // Ignore "no-course" special filter (used for showing students with 0 enrollments)
-  if (filters.courseId && filters.courseId !== 'no-course') {
+  if (filters.courseId) {
     where.courseId = filters.courseId
   }
 

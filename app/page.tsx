@@ -1,65 +1,187 @@
-import Image from "next/image";
+import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
+import { BookOpen, Users, GraduationCap, CheckCircle } from "lucide-react";
 
-export default function Home() {
+export default async function Home() {
+  const user = await getCurrentUser();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--background)' }}>
+      {/* Header */}
+      <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
+        <div className="container">
+          <Link href="/" className="navbar-brand d-flex align-items-center">
+            <GraduationCap className="me-2" size={28} style={{ color: 'var(--primary-blue)' }} />
+            <span className="fw-bold">CS Learning Platform</span>
+          </Link>
+          <div className="d-flex gap-2">
+            {user ? (
+              <Link href="/dashboard" className="btn btn-primary">
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link href="/sign-in" className="btn btn-outline-primary">
+                  Sign In
+                </Link>
+                <Link href="/sign-up" className="btn btn-primary">
+                  Get Started
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="py-5" style={{ background: 'linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%)' }}>
+        <div className="container text-center py-5">
+          <h1 className="display-3 fw-bold mb-4">
+            Master Computer Science
+            <span className="d-block text-primary mt-2">One Course at a Time</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="lead text-muted mx-auto mb-4" style={{ maxWidth: '700px' }}>
+            A comprehensive learning platform designed for computer science students and educators.
+            Track your progress, submit assignments, and excel in your courses.
           </p>
+          <div className="d-flex flex-column flex-sm-row gap-3 justify-content-center mt-5">
+            <Link href="/sign-up" className="btn btn-primary btn-lg px-5">
+              Start Learning Free
+            </Link>
+            <Link href="/sign-in" className="btn btn-outline-primary btn-lg px-5">
+              Sign In
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-5 my-5">
+        <div className="container">
+          <h2 className="text-center fw-bold mb-5 display-5">
+            Everything You Need to Succeed
+          </h2>
+          <div className="row g-4">
+            {/* Student Card */}
+            <div className="col-md-6 col-lg-4">
+              <div className="card h-100 shadow-sm">
+                <div className="card-body">
+                  <div className="mb-3">
+                    <BookOpen size={40} style={{ color: 'var(--primary-blue)' }} />
+                  </div>
+                  <h5 className="card-title fw-bold">For Students</h5>
+                  <p className="text-muted mb-3">Access all your courses in one place</p>
+                  <ul className="list-unstyled">
+                    <li className="d-flex align-items-start mb-2">
+                      <CheckCircle size={16} className="text-success me-2 mt-1 flex-shrink-0" />
+                      <span className="small">Enroll in classes with a simple class code</span>
+                    </li>
+                    <li className="d-flex align-items-start mb-2">
+                      <CheckCircle size={16} className="text-success me-2 mt-1 flex-shrink-0" />
+                      <span className="small">Submit assignments and track grades</span>
+                    </li>
+                    <li className="d-flex align-items-start mb-2">
+                      <CheckCircle size={16} className="text-success me-2 mt-1 flex-shrink-0" />
+                      <span className="small">View upcoming assessments and deadlines</span>
+                    </li>
+                    <li className="d-flex align-items-start">
+                      <CheckCircle size={16} className="text-success me-2 mt-1 flex-shrink-0" />
+                      <span className="small">Monitor your academic progress</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Professor Card */}
+            <div className="col-md-6 col-lg-4">
+              <div className="card h-100 shadow-sm">
+                <div className="card-body">
+                  <div className="mb-3">
+                    <Users size={40} style={{ color: 'var(--primary-blue)' }} />
+                  </div>
+                  <h5 className="card-title fw-bold">For Professors</h5>
+                  <p className="text-muted mb-3">Manage your classes efficiently</p>
+                  <ul className="list-unstyled">
+                    <li className="d-flex align-items-start mb-2">
+                      <CheckCircle size={16} className="text-success me-2 mt-1 flex-shrink-0" />
+                      <span className="small">Create and manage class sections</span>
+                    </li>
+                    <li className="d-flex align-items-start mb-2">
+                      <CheckCircle size={16} className="text-success me-2 mt-1 flex-shrink-0" />
+                      <span className="small">Share class codes for easy enrollment</span>
+                    </li>
+                    <li className="d-flex align-items-start mb-2">
+                      <CheckCircle size={16} className="text-success me-2 mt-1 flex-shrink-0" />
+                      <span className="small">Create assessments and grade submissions</span>
+                    </li>
+                    <li className="d-flex align-items-start">
+                      <CheckCircle size={16} className="text-success me-2 mt-1 flex-shrink-0" />
+                      <span className="small">Track student progress and engagement</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Admin Card */}
+            <div className="col-md-12 col-lg-4">
+              <div className="card h-100 shadow-sm">
+                <div className="card-body">
+                  <div className="mb-3">
+                    <GraduationCap size={40} style={{ color: 'var(--primary-blue)' }} />
+                  </div>
+                  <h5 className="card-title fw-bold">For Admins</h5>
+                  <p className="text-muted mb-3">Oversee the entire platform</p>
+                  <ul className="list-unstyled">
+                    <li className="d-flex align-items-start mb-2">
+                      <CheckCircle size={16} className="text-success me-2 mt-1 flex-shrink-0" />
+                      <span className="small">Manage users, courses, and classes</span>
+                    </li>
+                    <li className="d-flex align-items-start mb-2">
+                      <CheckCircle size={16} className="text-success me-2 mt-1 flex-shrink-0" />
+                      <span className="small">Approve professor accounts</span>
+                    </li>
+                    <li className="d-flex align-items-start mb-2">
+                      <CheckCircle size={16} className="text-success me-2 mt-1 flex-shrink-0" />
+                      <span className="small">View platform-wide analytics</span>
+                    </li>
+                    <li className="d-flex align-items-start">
+                      <CheckCircle size={16} className="text-success me-2 mt-1 flex-shrink-0" />
+                      <span className="small">Advanced filtering and reporting</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </main>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-5 bg-light border-top">
+        <div className="container text-center py-4">
+          <h2 className="fw-bold mb-3 display-6">Ready to Get Started?</h2>
+          <p className="lead text-muted mx-auto mb-4" style={{ maxWidth: '600px' }}>
+            Join thousands of students and educators using our platform to achieve their academic goals.
+          </p>
+          <Link href="/sign-up" className="btn btn-primary btn-lg px-5">
+            Create Your Account
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-top py-4">
+        <div className="container">
+          <div className="text-center">
+            <p className="text-muted mb-2 small">&copy; 2025 CS Learning Platform. All rights reserved.</p>
+            <Link href="/admin-login" className="text-muted small text-decoration-none">
+              Administrator Login
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

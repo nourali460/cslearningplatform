@@ -1,42 +1,49 @@
-import { auth } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
+import { getSession } from './session'
 import { db } from './db'
-import { User } from '@prisma/client'
+import type { User } from '@prisma/client'
 
 /**
- * Get the currently authenticated user from Clerk and return the corresponding local User record
+ * Get the current authenticated user
+ * Returns null if not authenticated
  */
 export async function getCurrentUser(): Promise<User | null> {
-  const { userId: clerkId } = await auth()
-  
-  if (!clerkId) {
+  const session = await getSession()
+
+  if (!session) {
     return null
   }
 
   const user = await db.user.findUnique({
-    where: { clerkId }
+    where: { id: session.userId },
   })
 
   return user
 }
 
 /**
- * Verify that the current user has the required role(s)
- * @param allowedRoles - Single role or array of allowed roles
- * @returns The user if authorized, null otherwise
+ * Require authentication - returns user or throws 401
+ * Use in API routes
  */
-export async function requireRole(
-  allowedRoles: string | string[]
-): Promise<User | null> {
+export async function requireAuth(): Promise<User> {
   const user = await getCurrentUser()
-  
+
   if (!user) {
-    return null
+    throw new Error('Unauthorized')
   }
 
-  const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles]
-  
-  if (!roles.includes(user.role)) {
-    return null
+  return user
+}
+
+/**
+ * Require specific role - returns user or throws 401/403
+ * Use in API routes
+ */
+export async function requireRole(role: 'admin' | 'professor' | 'student'): Promise<User> {
+  const user = await requireAuth()
+
+  if (user.role !== role) {
+    throw new Error('Forbidden: Insufficient permissions')
   }
 
   return user
@@ -45,28 +52,124 @@ export async function requireRole(
 /**
  * Require admin role
  */
-export async function requireAdmin(): Promise<User | null> {
+export async function requireAdmin(): Promise<User> {
   return requireRole('admin')
 }
 
 /**
  * Require professor role
  */
-export async function requireProfessor(): Promise<User | null> {
-  return requireRole('professor')
+export async function requireProfessor(): Promise<User> {
+  const user = await requireRole('professor')
+
+  // Check if professor is approved
+  if (!user.isApproved) {
+    throw new Error('Professor account pending approval')
+  }
+
+  return user
 }
 
 /**
  * Require student role
  */
-export async function requireStudent(): Promise<User | null> {
+export async function requireStudent(): Promise<User> {
   return requireRole('student')
 }
 
 /**
- * Check if a user has a specific role
+ * Get professor without approval check (for pending approval page)
+ */
+export async function getProfessorUnapproved(): Promise<User | null> {
+  const session = await getSession()
+
+  if (!session || session.role !== 'professor') {
+    return null
+  }
+
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+  })
+
+  return user
+}
+
+/**
+ * Get student user (returns null if not a student)
+ */
+export async function getStudent(): Promise<User | null> {
+  const session = await getSession()
+
+  if (!session || session.role !== 'student') {
+    return null
+  }
+
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+  })
+
+  return user
+}
+
+/**
+ * Get admin user (returns null if not an admin)
+ */
+export async function getAdmin(): Promise<User | null> {
+  const session = await getSession()
+
+  if (!session || session.role !== 'admin') {
+    return null
+  }
+
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+  })
+
+  return user
+}
+
+/**
+ * Get professor user (returns null if not an approved professor)
+ */
+export async function getProfessor(): Promise<User | null> {
+  const session = await getSession()
+
+  if (!session || session.role !== 'professor') {
+    return null
+  }
+
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+  })
+
+  if (!user || !user.isApproved) {
+    return null
+  }
+
+  return user
+}
+
+/**
+ * Check if user has a specific role
  */
 export async function hasRole(role: string): Promise<boolean> {
   const user = await getCurrentUser()
   return user?.role === role
+}
+
+/**
+ * Handle auth errors in API routes
+ * Converts Error to appropriate NextResponse
+ */
+export function handleAuthError(error: unknown): NextResponse {
+  if (error instanceof Error) {
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (error.message.includes('Forbidden') || error.message.includes('pending approval')) {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+  }
+
+  return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
 }

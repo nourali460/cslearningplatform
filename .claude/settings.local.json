@@ -5,7 +5,11 @@
       "Bash(cat:*)",
       "Bash(sudo -S npm cache clean:*)",
       "Bash(lsof:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(npm run build:*)",
+      "Bash(curl:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": []

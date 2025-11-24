@@ -1,10 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus } from 'lucide-react'
+import { BookOpen, FileText, TrendingUp, Plus, Calendar, Award } from 'lucide-react'
 
 export default async function StudentDashboard() {
   const user = await getCurrentUser()
@@ -16,7 +14,7 @@ export default async function StudentDashboard() {
   // Fetch student's enrollments and classes
   const enrollments = await db.enrollment.findMany({
     where: {
-      studentId: user.id
+      studentId: user.id,
     },
     include: {
       class: {
@@ -25,235 +23,324 @@ export default async function StudentDashboard() {
           professor: true,
           _count: {
             select: {
-              assessments: true
-            }
-          }
-        }
-      }
+              assessments: true,
+            },
+          },
+        },
+      },
     },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
   })
 
   // Fetch student's submissions
   const submissions = await db.assessmentSubmission.findMany({
     where: {
-      studentId: user.id
+      studentId: user.id,
     },
     include: {
       assessment: {
         include: {
           class: {
             include: {
-              course: true
-            }
-          }
-        }
-      }
+              course: true,
+            },
+          },
+        },
+      },
     },
-    orderBy: { submittedAt: 'desc' }
+    orderBy: { submittedAt: 'desc' },
   })
 
   // Get upcoming assessments (assessments without submissions)
-  const enrolledClassIds = enrollments.map(e => e.class.id)
-  const submittedAssessmentIds = submissions.map(s => s.assessmentId)
+  const enrolledClassIds = enrollments.map((e) => e.class.id)
+  const submittedAssessmentIds = submissions.map((s) => s.assessmentId)
 
   const upcomingAssessments = await db.assessment.findMany({
     where: {
       classId: {
-        in: enrolledClassIds
+        in: enrolledClassIds,
       },
       id: {
-        notIn: submittedAssessmentIds
-      }
+        notIn: submittedAssessmentIds,
+      },
     },
     include: {
       class: {
         include: {
-          course: true
-        }
-      }
+          course: true,
+        },
+      },
     },
     orderBy: { dueAt: 'asc' },
-    take: 5
+    take: 5,
   })
 
   // Calculate statistics
   const totalClasses = enrollments.length
   const totalSubmissions = submissions.length
-  const gradedSubmissions = submissions.filter(s => s.status === 'graded')
-  const averageScore = gradedSubmissions.length > 0
-    ? gradedSubmissions.reduce((sum, s) => sum + (Number(s.totalScore) || 0), 0) / gradedSubmissions.length
-    : 0
+  const gradedSubmissions = submissions.filter((s) => s.status === 'GRADED')
+  const averageScore =
+    gradedSubmissions.length > 0
+      ? gradedSubmissions.reduce((sum, s) => sum + (Number(s.totalScore) || 0), 0) /
+        gradedSubmissions.length
+      : 0
+
+  // Calculate completion rate
+  const totalAssessments = enrollments.reduce(
+    (sum, e) => sum + e.class._count.assessments,
+    0
+  )
+  const completionRate =
+    totalAssessments > 0 ? (totalSubmissions / totalAssessments) * 100 : 0
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Student Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Welcome back, {user.fullName || user.email}
+    <div>
+      {/* Header */}
+      <div className="mb-4">
+        <h1 className="display-5 fw-bold text-primary mb-2">📊 Dashboard</h1>
+        <p className="text-muted lead">
+          Welcome back, {user.fullName || user.email}!
         </p>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Enrolled Classes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalClasses}</div>
-            <div className="text-xs text-muted-foreground mt-1">Active enrollments</div>
-          </CardContent>
-        </Card>
+      <div className="row g-3 mb-4">
+        <div className="col-md-6 col-lg-3">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body">
+              <div className="d-flex align-items-center mb-2">
+                <BookOpen className="text-primary me-2" size={20} />
+                <h6 className="card-subtitle text-muted mb-0">Enrolled Classes</h6>
+              </div>
+              <h2 className="card-title mb-1">{totalClasses}</h2>
+              <p className="card-text small text-muted mb-0">Active enrollments</p>
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Submissions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalSubmissions}</div>
-            <div className="text-xs text-muted-foreground mt-1">{gradedSubmissions.length} graded</div>
-          </CardContent>
-        </Card>
+        <div className="col-md-6 col-lg-3">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body">
+              <div className="d-flex align-items-center mb-2">
+                <FileText className="text-success me-2" size={20} />
+                <h6 className="card-subtitle text-muted mb-0">Submissions</h6>
+              </div>
+              <h2 className="card-title mb-1">{totalSubmissions}</h2>
+              <p className="card-text small text-muted mb-0">
+                {gradedSubmissions.length} graded
+              </p>
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Average Score</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{averageScore.toFixed(1)}%</div>
-            <div className="text-xs text-muted-foreground mt-1">Across graded work</div>
-          </CardContent>
-        </Card>
+        <div className="col-md-6 col-lg-3">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body">
+              <div className="d-flex align-items-center mb-2">
+                <TrendingUp className="text-warning me-2" size={20} />
+                <h6 className="card-subtitle text-muted mb-0">Average Score</h6>
+              </div>
+              <h2 className="card-title mb-1">{averageScore.toFixed(1)}%</h2>
+              <p className="card-text small text-muted mb-0">Across graded work</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-md-6 col-lg-3">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body">
+              <div className="d-flex align-items-center mb-2">
+                <Award className="text-info me-2" size={20} />
+                <h6 className="card-subtitle text-muted mb-0">Completion</h6>
+              </div>
+              <h2 className="card-title mb-1">{completionRate.toFixed(0)}%</h2>
+              <p className="card-text small text-muted mb-0">Assignments completed</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Enrolled Classes */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      <div className="card border-0 shadow-sm mb-4">
+        <div className="card-header bg-white border-bottom">
+          <div className="d-flex justify-content-between align-items-center">
             <div>
-              <CardTitle>My Classes</CardTitle>
-              <CardDescription>
-                Your current enrollments
-              </CardDescription>
+              <h5 className="card-title mb-1">📚 My Classes</h5>
+              <p className="card-text small text-muted mb-0">Your current enrollments</p>
             </div>
-            <Link href="/student/enroll">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Enroll in Class
-              </Button>
+            <Link href="/student/enroll" className="btn btn-primary btn-sm">
+              <Plus size={16} className="me-1" />
+              Enroll in Class
             </Link>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="card-body">
           {enrollments.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground text-sm mb-4">You are not enrolled in any classes yet.</p>
-              <Link href="/student/enroll">
-                <Button variant="outline">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Enroll in Your First Class
-                </Button>
+            <div className="text-center py-5">
+              <BookOpen size={48} className="text-muted mb-3" />
+              <p className="text-muted mb-3">You are not enrolled in any classes yet.</p>
+              <Link href="/student/enroll" className="btn btn-outline-primary">
+                <Plus size={16} className="me-1" />
+                Enroll in Your First Class
               </Link>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="row g-3">
               {enrollments.map((enrollment) => (
-                <div key={enrollment.id} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold">{enrollment.class.course.code}: {enrollment.class.course.title}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {enrollment.class.term} {enrollment.class.year} · Section {enrollment.class.section} · {enrollment.class.classCode}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Professor: {enrollment.class.professor.fullName || enrollment.class.professor.email}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-medium">{enrollment.class._count.assessments} assessments</div>
-                      <div className="text-xs text-muted-foreground capitalize">{enrollment.status}</div>
+                <div key={enrollment.id} className="col-md-6">
+                  <div className="card border hover-shadow h-100">
+                    <div className="card-body">
+                      <h6 className="card-title fw-bold text-primary mb-2">
+                        {enrollment.class.course.code}: {enrollment.class.course.title}
+                      </h6>
+                      <div className="small text-muted mb-2">
+                        <div>
+                          {enrollment.class.term} {enrollment.class.year} · Section{' '}
+                          {enrollment.class.section}
+                        </div>
+                        <div>
+                          Professor: {enrollment.class.professor.fullName || enrollment.class.professor.email}
+                        </div>
+                      </div>
+                      <div className="d-flex justify-content-between align-items-center mt-3">
+                        <code className="small text-primary">{enrollment.class.classCode}</code>
+                        <span className="badge bg-info">
+                          {enrollment.class._count.assessments} assessments
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+        {enrollments.length > 0 && (
+          <div className="card-footer bg-transparent border-top-0 text-end">
+            <Link href="/student/classes" className="btn btn-sm btn-link">
+              View All Classes →
+            </Link>
+          </div>
+        )}
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="row g-4">
         {/* Upcoming Assessments */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Upcoming Assessments</CardTitle>
-            <CardDescription>
-              Assignments you haven't submitted yet
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {upcomingAssessments.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No upcoming assessments.</p>
-            ) : (
-              <div className="space-y-3">
-                {upcomingAssessments.map((assessment) => (
-                  <div key={assessment.id} className="border-b pb-3 last:border-b-0">
-                    <div className="font-medium">{assessment.title}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {assessment.class.course.code} · {assessment.class.classCode}
+        <div className="col-md-6">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-header bg-white border-bottom">
+              <h5 className="card-title mb-1">📅 Upcoming Assessments</h5>
+              <p className="card-text small text-muted mb-0">
+                Assignments you haven't submitted yet
+              </p>
+            </div>
+            <div className="card-body">
+              {upcomingAssessments.length === 0 ? (
+                <div className="text-center py-4">
+                  <Calendar size={32} className="text-muted mb-2" />
+                  <p className="text-muted small mb-0">No upcoming assessments.</p>
+                </div>
+              ) : (
+                <div className="list-group list-group-flush">
+                  {upcomingAssessments.map((assessment) => (
+                    <div key={assessment.id} className="list-group-item px-0">
+                      <div className="d-flex justify-content-between align-items-start">
+                        <div className="flex-grow-1">
+                          <h6 className="mb-1">{assessment.title}</h6>
+                          <div className="small text-muted">
+                            {assessment.class.course.code} · {assessment.class.classCode}
+                          </div>
+                          {assessment.dueAt && (
+                            <div className="small text-warning mt-1">
+                              <Calendar size={12} className="me-1" />
+                              Due: {new Date(assessment.dueAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <span className="badge bg-secondary">Pending</span>
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {assessment.dueAt ? `Due: ${new Date(assessment.dueAt).toLocaleDateString()}` : 'No due date'}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+            </div>
+            {upcomingAssessments.length > 0 && (
+              <div className="card-footer bg-transparent border-top-0 text-end">
+                <Link href="/student/assignments" className="btn btn-sm btn-link">
+                  View All Assignments →
+                </Link>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Recent Submissions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Submissions</CardTitle>
-            <CardDescription>
-              Your latest assignment submissions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {submissions.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No submissions yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {submissions.slice(0, 5).map((submission) => (
-                  <div key={submission.id} className="border-b pb-3 last:border-b-0">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="font-medium">{submission.assessment.title}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {submission.assessment.class.course.code}
+        <div className="col-md-6">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-header bg-white border-bottom">
+              <h5 className="card-title mb-1">📤 Recent Submissions</h5>
+              <p className="card-text small text-muted mb-0">
+                Your latest assignment submissions
+              </p>
+            </div>
+            <div className="card-body">
+              {submissions.length === 0 ? (
+                <div className="text-center py-4">
+                  <FileText size={32} className="text-muted mb-2" />
+                  <p className="text-muted small mb-0">No submissions yet.</p>
+                </div>
+              ) : (
+                <div className="list-group list-group-flush">
+                  {submissions.slice(0, 5).map((submission) => (
+                    <div key={submission.id} className="list-group-item px-0">
+                      <div className="d-flex justify-content-between align-items-start mb-2">
+                        <div className="flex-grow-1">
+                          <h6 className="mb-1">{submission.assessment.title}</h6>
+                          <div className="small text-muted">
+                            {submission.assessment.class.course.code}
+                          </div>
+                        </div>
+                        <div className="text-end">
+                          {submission.totalScore !== null ? (
+                            <div>
+                              <span className="fw-bold">
+                                {Number(submission.totalScore).toFixed(1)}
+                              </span>
+                              <span className="text-muted">
+                                /{Number(submission.assessment.maxPoints).toFixed(0)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="badge bg-warning text-dark">Pending</span>
+                          )}
+                          <div className="small text-muted text-capitalize">
+                            {submission.status?.toLowerCase()}
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium">
-                          {submission.totalScore ? `${submission.totalScore}/${submission.assessment.maxPoints}` : 'Pending'}
+                      {submission.feedback && (
+                        <div className="small text-muted fst-italic border-start border-3 border-info ps-2 mt-2">
+                          {submission.feedback}
                         </div>
-                        <div className="text-xs text-muted-foreground capitalize">
-                          {submission.status || 'submitted'}
-                        </div>
-                      </div>
+                      )}
                     </div>
-                    {submission.feedback && (
-                      <div className="text-xs text-muted-foreground mt-2 italic">
-                        {submission.feedback}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+            </div>
+            {submissions.length > 0 && (
+              <div className="card-footer bg-transparent border-top-0 text-end">
+                <Link href="/student/assignments" className="btn btn-sm btn-link">
+                  View All Submissions →
+                </Link>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -67,6 +67,13 @@ export const updateClassSchema = z.object({
   isActive: z.boolean().optional(),
 })
 
+export const createProfessorClassSchema = z.object({
+  courseId: z.string().uuid(),
+  term: z.enum(['Fall', 'Spring', 'Summer', 'Winter']),
+  year: z.number().int().min(2000).max(2100),
+  section: z.string().regex(/^\d{1,2}$/, 'Section must be a 1-2 digit number'),
+})
+
 // ---------------------------------------------------------
 // ENROLLMENT SCHEMAS
 // ---------------------------------------------------------

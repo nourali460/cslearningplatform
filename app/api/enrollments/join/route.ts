@@ -1,39 +1,19 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { requireStudent, handleAuthError } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { joinClassSchema } from '@/lib/validations'
 import { z } from 'zod'
 
 export async function POST(req: Request) {
   try {
-    // 1. Authenticate user
-    const { userId: clerkId } = await auth()
-    if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // 1. Require student authentication
+    const user = await requireStudent()
 
-    // 2. Get user from database
-    const user = await db.user.findUnique({
-      where: { clerkId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    // 3. Verify user is a student
-    if (user.role !== 'student') {
-      return NextResponse.json(
-        { error: 'Only students can enroll in classes' },
-        { status: 403 }
-      )
-    }
-
-    // 4. Parse and validate request body
+    // 2. Parse and validate request body
     const body = await req.json()
     const validatedData = joinClassSchema.parse(body)
 
-    // 5. Find class by code
+    // 3. Find class by code
     const classToJoin = await db.class.findUnique({
       where: { classCode: validatedData.classCode },
       include: {
@@ -58,7 +38,7 @@ export async function POST(req: Request) {
       )
     }
 
-    // 6. Verify class is active
+    // 4. Verify class is active
     if (!classToJoin.isActive) {
       return NextResponse.json(
         { error: 'This class is no longer active and not accepting enrollments.' },
@@ -66,7 +46,7 @@ export async function POST(req: Request) {
       )
     }
 
-    // 7. Check if already enrolled
+    // 5. Check if already enrolled
     const existingEnrollment = await db.enrollment.findUnique({
       where: {
         classId_studentId: {
@@ -83,7 +63,7 @@ export async function POST(req: Request) {
       )
     }
 
-    // 8. Create enrollment
+    // 6. Create enrollment
     const enrollment = await db.enrollment.create({
       data: {
         classId: classToJoin.id,
@@ -92,7 +72,7 @@ export async function POST(req: Request) {
       },
     })
 
-    // 9. Return success with class details
+    // 7. Return success with class details
     return NextResponse.json(
       {
         message: 'Successfully enrolled in class',
@@ -129,9 +109,6 @@ export async function POST(req: Request) {
     }
 
     console.error('Error joining class:', error)
-    return NextResponse.json(
-      { error: 'An error occurred while joining the class. Please try again.' },
-      { status: 500 }
-    )
+    return handleAuthError(error)
   }
 }

@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { db } from '@/lib/db'
+import { getSession, updateSession } from '@/lib/session'
 
+/**
+ * POST /api/switch-role
+ * Switch user role (for testing purposes only)
+ */
 export async function POST(req: Request) {
   try {
-    const { userId } = await auth()
+    const session = await getSession()
 
-    if (!userId) {
+    if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -19,26 +22,16 @@ export async function POST(req: Request) {
       )
     }
 
-    // Update user role
-    const user = await db.user.upsert({
-      where: { clerkId: userId },
-      create: {
-        clerkId: userId,
-        role,
-        email: 'test@example.com',  // Placeholder
-      },
-      update: {
-        role,
-      },
-    })
+    // Update session with new role
+    await updateSession({ role: role as 'admin' | 'professor' | 'student' })
 
     return NextResponse.json({
       success: true,
       message: `Role switched to ${role}`,
       user: {
-        id: user.id,
-        role: user.role,
-        email: user.email,
+        userId: session.userId,
+        role: role,
+        email: session.email,
       },
     })
   } catch (error: any) {

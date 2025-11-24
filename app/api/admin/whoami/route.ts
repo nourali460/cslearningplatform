@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth'
+import { requireAdmin, handleAuthError } from '@/lib/auth'
 import { db } from '@/lib/db'
 
 /**
@@ -9,13 +9,6 @@ import { db } from '@/lib/db'
 export async function GET() {
   try {
     const user = await requireAdmin()
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 401 }
-      )
-    }
 
     // Get additional admin-level data
     const stats = await db.$transaction([
@@ -44,9 +37,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Admin whoami error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleAuthError(error)
   }
 }

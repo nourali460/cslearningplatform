@@ -2,30 +2,7 @@
 
 import { useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { X, Check, ChevronsUpDown } from 'lucide-react'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { cn } from '@/lib/utils'
+import { X, Search } from 'lucide-react'
 
 type FilterOption = {
   terms: string[]
@@ -37,13 +14,38 @@ type FilterOption = {
   assessments: { id: string; title: string; courseCode: string }[]
 }
 
-export function AdminFilterBar({ options }: { options?: FilterOption }) {
+type AvailableFilters = {
+  showStudent?: boolean
+  showTerm?: boolean
+  showYear?: boolean
+  showProfessor?: boolean
+  showCourse?: boolean
+  showClass?: boolean
+  showAssessment?: boolean
+}
+
+export function AdminFilterBar({
+  options,
+  availableFilters = {
+    showStudent: true,
+    showTerm: true,
+    showYear: true,
+    showProfessor: true,
+    showCourse: true,
+    showClass: true,
+    showAssessment: true,
+  }
+}: {
+  options?: FilterOption
+  availableFilters?: AvailableFilters
+}) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const [openStudent, setOpenStudent] = useState(false)
-  const [openProfessor, setOpenProfessor] = useState(false)
-  const [openAssessment, setOpenAssessment] = useState(false)
+
+  const [studentSearch, setStudentSearch] = useState('')
+  const [professorSearch, setProfessorSearch] = useState('')
+  const [assessmentSearch, setAssessmentSearch] = useState('')
 
   const currentTerm = searchParams.get('term') || ''
   const currentYear = searchParams.get('year') || ''
@@ -81,281 +83,295 @@ export function AdminFilterBar({ options }: { options?: FilterOption }) {
   const hasActiveFilters =
     currentTerm || currentYear || currentProfessor || currentCourse || currentClass || currentStudent || currentAssessment
 
+  // Filter functions for searchable dropdowns
+  const filteredStudents = students.filter((student) =>
+    student.name.toLowerCase().includes(studentSearch.toLowerCase())
+  )
+
+  const filteredProfessors = professors.filter((prof) =>
+    prof.name.toLowerCase().includes(professorSearch.toLowerCase())
+  )
+
+  const filteredAssessments = assessments.filter((assessment) =>
+    assessment.title.toLowerCase().includes(assessmentSearch.toLowerCase()) ||
+    assessment.courseCode.toLowerCase().includes(assessmentSearch.toLowerCase())
+  )
+
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-background p-4">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-muted-foreground">Filter by:</span>
-      </div>
+    <div className="card border-0 shadow-sm mb-4">
+      <div className="card-body">
+        <div className="d-flex align-items-center justify-content-between mb-3">
+          <h6 className="mb-0 fw-semibold text-primary">
+            <i className="bi bi-funnel me-2"></i>
+            Filters
+          </h6>
+          {hasActiveFilters && (
+            <button
+              className="btn btn-sm btn-outline-danger"
+              onClick={clearAllFilters}
+            >
+              <X className="me-1" size={16} />
+              Clear All
+            </button>
+          )}
+        </div>
 
-      {/* Student Filter (Searchable) */}
-      <Popover open={openStudent} onOpenChange={setOpenStudent}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={openStudent}
-            className="w-[200px] justify-between"
-          >
-            {currentStudent
-              ? students.find((student) => student.id === currentStudent)?.name
-              : 'All Students'}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[200px] p-0">
-          <Command>
-            <CommandInput placeholder="Search students..." />
-            <CommandList>
-              <CommandEmpty>No student found.</CommandEmpty>
-              <CommandGroup>
-                <CommandItem
-                  onSelect={() => {
-                    updateFilter('studentId', '')
-                    setOpenStudent(false)
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      'mr-2 h-4 w-4',
-                      !currentStudent ? 'opacity-100' : 'opacity-0'
-                    )}
+        <div className="row g-3">
+          {/* Row 1 */}
+          {/* Student Filter (Searchable Dropdown) */}
+          {availableFilters.showStudent && (
+          <div className="col-md-4">
+            <label className="form-label small fw-semibold text-muted mb-2">Student</label>
+            <div className="dropdown w-100">
+              <button
+                className="btn btn-outline-secondary dropdown-toggle w-100 text-start"
+                type="button"
+                data-bs-toggle="dropdown"
+                data-bs-auto-close="outside"
+                onClick={() => setStudentSearch('')}
+              >
+                {currentStudent
+                  ? students.find((student) => student.id === currentStudent)?.name || 'All Students'
+                  : 'All Students'}
+              </button>
+              <div className="dropdown-menu w-100 p-2" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                <div className="input-group input-group-sm mb-2">
+                  <span className="input-group-text">
+                    <Search size={14} />
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search students..."
+                    value={studentSearch}
+                    onChange={(e) => setStudentSearch(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
                   />
+                </div>
+                <button
+                  className="dropdown-item"
+                  onClick={() => updateFilter('studentId', '')}
+                >
+                  {!currentStudent && <span className="text-primary me-2">✓</span>}
                   All Students
-                </CommandItem>
-                {students.map((student) => (
-                  <CommandItem
+                </button>
+                {filteredStudents.map((student) => (
+                  <button
                     key={student.id}
-                    value={student.name}
-                    onSelect={() => {
-                      updateFilter('studentId', student.id)
-                      setOpenStudent(false)
-                    }}
+                    className="dropdown-item"
+                    onClick={() => updateFilter('studentId', student.id)}
                   >
-                    <Check
-                      className={cn(
-                        'mr-2 h-4 w-4',
-                        currentStudent === student.id ? 'opacity-100' : 'opacity-0'
-                      )}
-                    />
+                    {currentStudent === student.id && <span className="text-primary me-2">✓</span>}
                     {student.name}
-                  </CommandItem>
+                  </button>
                 ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+                {filteredStudents.length === 0 && (
+                  <div className="text-muted text-center py-2 small">No students found</div>
+                )}
+              </div>
+            </div>
+          </div>
+          )}
 
-      {/* Term Filter */}
-      <Select value={currentTerm || 'all'} onValueChange={(value) => updateFilter('term', value)}>
-        <SelectTrigger className="w-[140px]">
-          <SelectValue placeholder="All Terms" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Terms</SelectItem>
-          {terms.map((term) => (
-            <SelectItem key={term} value={term}>
-              {term}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+          {/* Term Filter */}
+          {availableFilters.showTerm && (
+          <div className="col-md-4">
+            <label className="form-label small fw-semibold text-muted mb-2">Term</label>
+            <select
+              className="form-select"
+              value={currentTerm || 'all'}
+              onChange={(e) => updateFilter('term', e.target.value)}
+            >
+              <option value="all">All Terms</option>
+              {terms.map((term) => (
+                <option key={term} value={term}>
+                  {term}
+                </option>
+              ))}
+            </select>
+          </div>
+          )}
 
-      {/* Year Filter */}
-      <Select
-        value={currentYear || 'all'}
-        onValueChange={(value) => updateFilter('year', value)}
-      >
-        <SelectTrigger className="w-[130px]">
-          <SelectValue placeholder="All Years" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Years</SelectItem>
-          {years.map((year) => (
-            <SelectItem key={year} value={year.toString()}>
-              {year}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+          {/* Year Filter */}
+          {availableFilters.showYear && (
+          <div className="col-md-4">
+            <label className="form-label small fw-semibold text-muted mb-2">Year</label>
+            <select
+              className="form-select"
+              value={currentYear || 'all'}
+              onChange={(e) => updateFilter('year', e.target.value)}
+            >
+              <option value="all">All Years</option>
+              {years.map((year) => (
+                <option key={year} value={year.toString()}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+          )}
 
-      {/* Professor Filter (Searchable) */}
-      <Popover open={openProfessor} onOpenChange={setOpenProfessor}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={openProfessor}
-            className="w-[200px] justify-between"
-          >
-            {currentProfessor
-              ? professors.find((prof) => prof.id === currentProfessor)?.name
-              : 'All Professors'}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[200px] p-0">
-          <Command>
-            <CommandInput placeholder="Search professors..." />
-            <CommandList>
-              <CommandEmpty>No professor found.</CommandEmpty>
-              <CommandGroup>
-                <CommandItem
-                  onSelect={() => {
-                    updateFilter('professorId', '')
-                    setOpenProfessor(false)
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      'mr-2 h-4 w-4',
-                      !currentProfessor ? 'opacity-100' : 'opacity-0'
-                    )}
+          {/* Row 2 */}
+          {/* Professor Filter (Searchable Dropdown) */}
+          {availableFilters.showProfessor && (
+          <div className="col-md-4">
+            <label className="form-label small fw-semibold text-muted mb-2">Professor</label>
+            <div className="dropdown w-100">
+              <button
+                className="btn btn-outline-secondary dropdown-toggle w-100 text-start"
+                type="button"
+                data-bs-toggle="dropdown"
+                data-bs-auto-close="outside"
+                onClick={() => setProfessorSearch('')}
+              >
+                {currentProfessor
+                  ? professors.find((prof) => prof.id === currentProfessor)?.name || 'All Professors'
+                  : 'All Professors'}
+              </button>
+              <div className="dropdown-menu w-100 p-2" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                <div className="input-group input-group-sm mb-2">
+                  <span className="input-group-text">
+                    <Search size={14} />
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search professors..."
+                    value={professorSearch}
+                    onChange={(e) => setProfessorSearch(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
                   />
+                </div>
+                <button
+                  className="dropdown-item"
+                  onClick={() => updateFilter('professorId', '')}
+                >
+                  {!currentProfessor && <span className="text-primary me-2">✓</span>}
                   All Professors
-                </CommandItem>
-                {professors.map((prof) => (
-                  <CommandItem
+                </button>
+                {filteredProfessors.map((prof) => (
+                  <button
                     key={prof.id}
-                    value={prof.name}
-                    onSelect={() => {
-                      updateFilter('professorId', prof.id)
-                      setOpenProfessor(false)
-                    }}
+                    className="dropdown-item"
+                    onClick={() => updateFilter('professorId', prof.id)}
                   >
-                    <Check
-                      className={cn(
-                        'mr-2 h-4 w-4',
-                        currentProfessor === prof.id ? 'opacity-100' : 'opacity-0'
-                      )}
-                    />
+                    {currentProfessor === prof.id && <span className="text-primary me-2">✓</span>}
                     {prof.name}
-                  </CommandItem>
+                  </button>
                 ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+                {filteredProfessors.length === 0 && (
+                  <div className="text-muted text-center py-2 small">No professors found</div>
+                )}
+              </div>
+            </div>
+          </div>
+          )}
 
-      {/* Course Filter */}
-      <Select
-        value={currentCourse || 'all'}
-        onValueChange={(value) => updateFilter('courseId', value)}
-      >
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="All Courses" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Courses</SelectItem>
-          <SelectItem value="no-course">No Course</SelectItem>
-          {courses.map((course) => (
-            <SelectItem key={course.id} value={course.id}>
-              {course.code} - {course.title}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+          {/* Course Filter */}
+          {availableFilters.showCourse && (
+          <div className="col-md-4">
+            <label className="form-label small fw-semibold text-muted mb-2">Course</label>
+            <select
+              className="form-select"
+              value={currentCourse || 'all'}
+              onChange={(e) => updateFilter('courseId', e.target.value)}
+            >
+              <option value="all">All Courses</option>
+              {courses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.code} - {course.title}
+                </option>
+              ))}
+            </select>
+          </div>
+          )}
 
-      {/* Class Filter */}
-      <Select
-        value={currentClass || 'all'}
-        onValueChange={(value) => updateFilter('classId', value)}
-      >
-        <SelectTrigger className="w-[220px]">
-          <SelectValue placeholder="All Classes" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Classes</SelectItem>
-          {classes.map((cls) => (
-            <SelectItem key={cls.id} value={cls.id}>
-              {cls.code}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+          {/* Class Filter */}
+          {availableFilters.showClass && (
+          <div className="col-md-4">
+            <label className="form-label small fw-semibold text-muted mb-2">Class</label>
+            <select
+              className="form-select"
+              value={currentClass || 'all'}
+              onChange={(e) => updateFilter('classId', e.target.value)}
+            >
+              <option value="all">All Classes</option>
+              {classes.map((cls) => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.code}
+                </option>
+              ))}
+            </select>
+          </div>
+          )}
 
-      {/* Assessment Filter (Searchable) */}
-      <Popover open={openAssessment} onOpenChange={setOpenAssessment}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={openAssessment}
-            className="w-[240px] justify-between"
-          >
-            {currentAssessment
-              ? (() => {
-                  const assessment = assessments.find((a) => a.id === currentAssessment)
-                  return assessment
-                    ? `${assessment.courseCode}: ${assessment.title}`
-                    : 'All Assessments'
-                })()
-              : 'All Assessments'}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[240px] p-0">
-          <Command>
-            <CommandInput placeholder="Search assessments..." />
-            <CommandList>
-              <CommandEmpty>No assessment found.</CommandEmpty>
-              <CommandGroup>
-                <CommandItem
-                  onSelect={() => {
-                    updateFilter('assessmentId', '')
-                    setOpenAssessment(false)
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      'mr-2 h-4 w-4',
-                      !currentAssessment ? 'opacity-100' : 'opacity-0'
-                    )}
+          {/* Row 3 */}
+          {/* Assessment Filter (Searchable Dropdown) */}
+          {availableFilters.showAssessment && (
+          <div className="col-md-4">
+            <label className="form-label small fw-semibold text-muted mb-2">Assessment</label>
+            <div className="dropdown w-100">
+              <button
+                className="btn btn-outline-secondary dropdown-toggle w-100 text-start"
+                type="button"
+                data-bs-toggle="dropdown"
+                data-bs-auto-close="outside"
+                onClick={() => setAssessmentSearch('')}
+              >
+                {currentAssessment
+                  ? (() => {
+                      const assessment = assessments.find((a) => a.id === currentAssessment)
+                      return assessment
+                        ? `${assessment.courseCode}: ${assessment.title}`
+                        : 'All Assessments'
+                    })()
+                  : 'All Assessments'}
+              </button>
+              <div className="dropdown-menu w-100 p-2" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                <div className="input-group input-group-sm mb-2">
+                  <span className="input-group-text">
+                    <Search size={14} />
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search assessments..."
+                    value={assessmentSearch}
+                    onChange={(e) => setAssessmentSearch(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
                   />
+                </div>
+                <button
+                  className="dropdown-item"
+                  onClick={() => updateFilter('assessmentId', '')}
+                >
+                  {!currentAssessment && <span className="text-primary me-2">✓</span>}
                   All Assessments
-                </CommandItem>
-                {assessments.map((assessment) => (
-                  <CommandItem
+                </button>
+                {filteredAssessments.map((assessment) => (
+                  <button
                     key={assessment.id}
-                    value={`${assessment.courseCode} ${assessment.title}`}
-                    onSelect={() => {
-                      updateFilter('assessmentId', assessment.id)
-                      setOpenAssessment(false)
-                    }}
+                    className="dropdown-item"
+                    onClick={() => updateFilter('assessmentId', assessment.id)}
                   >
-                    <Check
-                      className={cn(
-                        'mr-2 h-4 w-4',
-                        currentAssessment === assessment.id ? 'opacity-100' : 'opacity-0'
-                      )}
-                    />
+                    {currentAssessment === assessment.id && <span className="text-primary me-2">✓</span>}
                     <div>
-                      <div className="font-medium">{assessment.title}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="fw-semibold">{assessment.title}</div>
+                      <div className="text-muted" style={{ fontSize: '0.75rem' }}>
                         {assessment.courseCode}
                       </div>
                     </div>
-                  </CommandItem>
+                  </button>
                 ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-
-      {/* Clear Filters Button */}
-      {hasActiveFilters && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearAllFilters}
-          className="ml-auto"
-        >
-          <X className="mr-1 h-4 w-4" />
-          Clear filters
-        </Button>
-      )}
+                {filteredAssessments.length === 0 && (
+                  <div className="text-muted text-center py-2 small">No assessments found</div>
+                )}
+              </div>
+            </div>
+          </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

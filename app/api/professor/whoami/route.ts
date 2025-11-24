@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireProfessor } from '@/lib/auth'
+import { requireProfessor, handleAuthError } from '@/lib/auth'
 import { db } from '@/lib/db'
 
 /**
@@ -9,13 +9,6 @@ import { db } from '@/lib/db'
 export async function GET() {
   try {
     const user = await requireProfessor()
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Professor access required.' },
-        { status: 401 }
-      )
-    }
 
     // Get professor's classes with course and enrollment info
     const classes = await db.class.findMany({
@@ -69,9 +62,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Professor whoami error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleAuthError(error)
   }
 }

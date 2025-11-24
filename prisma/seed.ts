@@ -60,87 +60,21 @@ async function main() {
 
     console.log('✅ Cleaned test data (preserved primary admin)')
 
-    // Step 3: Create test users
-    console.log('\n👥 Creating test users...')
-
-    const professors = await Promise.all([
-      prisma.user.create({
-        data: {
-          clerkId: 'clerk_prof1_placeholder',
-          email: 'prof.smith@cslearning.edu',
-          fullName: 'Dr. Sarah Smith',
-          username: 'SMITH',
-          role: 'professor',
-          isApproved: true,
-        },
-      }),
-      prisma.user.create({
-        data: {
-          clerkId: 'clerk_prof2_placeholder',
-          email: 'prof.johnson@cslearning.edu',
-          fullName: 'Dr. Michael Johnson',
-          username: 'JOHNSON',
-          role: 'professor',
-          isApproved: true,
-        },
-      }),
-    ])
-    console.log(`✅ Created ${professors.length} test professors`)
-
-    const students = await Promise.all([
-      prisma.user.create({
-        data: {
-          clerkId: 'clerk_student1_placeholder',
-          email: 'alice.wonder@student.cslearning.edu',
-          fullName: 'Alice Wonderland',
-          role: 'student',
-        },
-      }),
-      prisma.user.create({
-        data: {
-          clerkId: 'clerk_student2_placeholder',
-          email: 'bob.builder@student.cslearning.edu',
-          fullName: 'Bob Builder',
-          role: 'student',
-        },
-      }),
-      prisma.user.create({
-        data: {
-          clerkId: 'clerk_student3_placeholder',
-          email: 'charlie.brown@student.cslearning.edu',
-          fullName: 'Charlie Brown',
-          role: 'student',
-        },
-      }),
-      prisma.user.create({
-        data: {
-          clerkId: 'clerk_student4_placeholder',
-          email: 'diana.prince@student.cslearning.edu',
-          fullName: 'Diana Prince',
-          role: 'student',
-        },
-      }),
-      prisma.user.create({
-        data: {
-          clerkId: 'clerk_student5_placeholder',
-          email: 'ethan.hunt@student.cslearning.edu',
-          fullName: 'Ethan Hunt',
-          role: 'student',
-        },
-      }),
-    ])
-    console.log(`✅ Created ${students.length} test students`)
+    // NOTE: Test users removed to prevent conflicts with real signups
+    // Real users will sign up via Clerk and be created by webhook
+    console.log('\n✅ Skipping test user creation (use real signups instead)')
 
     // Step 4: Create courses
     console.log('\n📚 Creating courses...')
     const courses = await Promise.all([
+      // Introductory Level (100s)
       prisma.course.create({
         data: {
           code: 'CS101',
           title: 'Introduction to Java Programming',
           description: 'Learn the fundamentals of Java programming including OOP concepts, data structures, and algorithms.',
           subject: 'Computer Science',
-          level: 'Beginner',
+          level: 'Introductory',
           isActive: true,
         },
       }),
@@ -150,10 +84,32 @@ async function main() {
           title: 'Web Development Fundamentals',
           description: 'Learn HTML, CSS, JavaScript, and modern web development frameworks.',
           subject: 'Computer Science',
-          level: 'Beginner',
+          level: 'Introductory',
           isActive: true,
         },
       }),
+      prisma.course.create({
+        data: {
+          code: 'CS103',
+          title: 'Computer Organization',
+          description: 'Study computer architecture, assembly language, and system-level programming.',
+          subject: 'Computer Science',
+          level: 'Introductory',
+          isActive: true,
+        },
+      }),
+      prisma.course.create({
+        data: {
+          code: 'CS104',
+          title: 'Discrete Mathematics for Computer Science',
+          description: 'Essential mathematical foundations including logic, sets, functions, and graph theory.',
+          subject: 'Computer Science',
+          level: 'Introductory',
+          isActive: true,
+        },
+      }),
+
+      // Intermediate Level (200s)
       prisma.course.create({
         data: {
           code: 'CS201',
@@ -164,8 +120,175 @@ async function main() {
           isActive: true,
         },
       }),
+      prisma.course.create({
+        data: {
+          code: 'CS202',
+          title: 'Database Systems',
+          description: 'Learn relational database design, SQL, transactions, and database management.',
+          subject: 'Computer Science',
+          level: 'Intermediate',
+          isActive: true,
+        },
+      }),
+      prisma.course.create({
+        data: {
+          code: 'CS203',
+          title: 'Operating Systems',
+          description: 'Study OS concepts including processes, threads, memory management, and file systems.',
+          subject: 'Computer Science',
+          level: 'Intermediate',
+          isActive: true,
+        },
+      }),
+      prisma.course.create({
+        data: {
+          code: 'CS204',
+          title: 'Computer Networks',
+          description: 'Explore network protocols, architecture, and distributed systems fundamentals.',
+          subject: 'Computer Science',
+          level: 'Intermediate',
+          isActive: true,
+        },
+      }),
+      prisma.course.create({
+        data: {
+          code: 'CS205',
+          title: 'Software Engineering',
+          description: 'Software development lifecycle, design patterns, testing, and project management.',
+          subject: 'Computer Science',
+          level: 'Intermediate',
+          isActive: true,
+        },
+      }),
+      prisma.course.create({
+        data: {
+          code: 'CS206',
+          title: 'Advanced Web Development',
+          description: 'Modern web frameworks, RESTful APIs, authentication, and cloud deployment.',
+          subject: 'Computer Science',
+          level: 'Intermediate',
+          isActive: true,
+        },
+      }),
+
+      // Advanced Level (300s)
+      prisma.course.create({
+        data: {
+          code: 'CS301',
+          title: 'Artificial Intelligence',
+          description: 'AI fundamentals including search algorithms, knowledge representation, and reasoning.',
+          subject: 'Computer Science',
+          level: 'Advanced',
+          isActive: true,
+        },
+      }),
+      prisma.course.create({
+        data: {
+          code: 'CS302',
+          title: 'Machine Learning',
+          description: 'Supervised and unsupervised learning, neural networks, and deep learning foundations.',
+          subject: 'Computer Science',
+          level: 'Advanced',
+          isActive: true,
+        },
+      }),
+      prisma.course.create({
+        data: {
+          code: 'CS303',
+          title: 'Computer Security',
+          description: 'Cryptography, network security, secure coding practices, and ethical hacking.',
+          subject: 'Computer Science',
+          level: 'Advanced',
+          isActive: true,
+        },
+      }),
+      prisma.course.create({
+        data: {
+          code: 'CS304',
+          title: 'Distributed Systems',
+          description: 'Design and implementation of distributed applications, consensus, and fault tolerance.',
+          subject: 'Computer Science',
+          level: 'Advanced',
+          isActive: true,
+        },
+      }),
+      prisma.course.create({
+        data: {
+          code: 'CS305',
+          title: 'Compiler Design',
+          description: 'Lexical analysis, parsing, code generation, and optimization techniques.',
+          subject: 'Computer Science',
+          level: 'Advanced',
+          isActive: true,
+        },
+      }),
+
+      // Electives (400s)
+      prisma.course.create({
+        data: {
+          code: 'CS401',
+          title: 'Mobile App Development',
+          description: 'iOS and Android development using Swift and Kotlin/Java.',
+          subject: 'Computer Science',
+          level: 'Elective',
+          isActive: true,
+        },
+      }),
+      prisma.course.create({
+        data: {
+          code: 'CS402',
+          title: 'Cloud Computing',
+          description: 'AWS, Azure, containerization with Docker, and Kubernetes orchestration.',
+          subject: 'Computer Science',
+          level: 'Elective',
+          isActive: true,
+        },
+      }),
+      prisma.course.create({
+        data: {
+          code: 'CS403',
+          title: 'Game Development',
+          description: 'Game engines, graphics programming, physics simulation, and game design principles.',
+          subject: 'Computer Science',
+          level: 'Elective',
+          isActive: true,
+        },
+      }),
+      prisma.course.create({
+        data: {
+          code: 'CS404',
+          title: 'Computer Graphics',
+          description: '3D rendering, transformations, lighting models, and graphics pipeline.',
+          subject: 'Computer Science',
+          level: 'Elective',
+          isActive: true,
+        },
+      }),
+      prisma.course.create({
+        data: {
+          code: 'CS405',
+          title: 'Cybersecurity and Penetration Testing',
+          description: 'Advanced security topics, vulnerability assessment, and ethical hacking techniques.',
+          subject: 'Computer Science',
+          level: 'Elective',
+          isActive: true,
+        },
+      }),
     ])
     console.log(`✅ Created ${courses.length} courses`)
+
+    // NOTE: Classes, enrollments, assessments, and submissions removed
+    // These will be created by real professors and students via the app
+    console.log('\n✅ Skipping test classes/enrollments/assessments (create via app)')
+
+    console.log('\n🎉 Database initialization completed successfully!')
+    console.log('\n📊 Summary:')
+    console.log(`   - 1 primary admin (${PRIMARY_ADMIN.email})`)
+    console.log(`   - ${courses.length} sample courses`)
+    console.log(`   - Real users will sign up via Clerk`)
+    console.log(`   - Professors and students can create classes and enrollments via the app`)
+
+    /* REMOVED: Test data creation (causes conflicts with real signups)
 
     // Step 5: Create classes
     console.log('\n🏫 Creating classes...')
@@ -629,16 +752,8 @@ async function main() {
     ])
     console.log(`✅ Created ${submissions.length} sample submissions`)
 
-    console.log('\n🎉 Database initialization completed successfully!')
-    console.log('\n📊 Summary:')
-    console.log(`   - 1 primary admin (${PRIMARY_ADMIN.email})`)
-    console.log(`   - ${professors.length} test professors`)
-    console.log(`   - ${students.length} test students`)
-    console.log(`   - ${courses.length} courses`)
-    console.log(`   - ${classes.length} classes`)
-    console.log(`   - ${enrollments.length} enrollments`)
-    console.log(`   - ${assessments.length} assessments`)
-    console.log(`   - ${submissions.length} submissions`)
+    END OF REMOVED TEST DATA */
+
   } catch (e) {
     console.error('❌ Error during database initialization:', e)
     throw e

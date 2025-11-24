@@ -2,21 +2,22 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
 const PRIMARY_ADMIN = {
-  clerkId: 'user_35rVge67RtsAqrA0Vl4JC6F9dOW',
-  email: 'subscriptionnova@gmail.com',
+  email: 'subscriptionsnova@gmail.com',
   fullName: 'Nour Ali',
   role: 'admin',
+  password: 'Hassan56$', // Fixed admin password
 }
 
 /**
  * GET /api/init-admin
  * Initializes the primary admin user if it doesn't exist
+ * Uses fixed password: Hassan56$
  */
 export async function GET() {
   try {
     // Check if admin already exists
     const existing = await db.user.findUnique({
-      where: { clerkId: PRIMARY_ADMIN.clerkId }
+      where: { email: PRIMARY_ADMIN.email }
     })
 
     if (existing) {
@@ -31,9 +32,12 @@ export async function GET() {
       })
     }
 
-    // Create the admin user
+    // Create the admin user with fixed password
     const admin = await db.user.create({
-      data: PRIMARY_ADMIN
+      data: {
+        ...PRIMARY_ADMIN,
+        isApproved: true,
+      }
     })
 
     return NextResponse.json({
@@ -43,8 +47,9 @@ export async function GET() {
         email: admin.email,
         fullName: admin.fullName,
         role: admin.role,
-      }
-    })
+      },
+      note: 'Admin password is: Hassan56$'
+    }, { status: 201 })
   } catch (error) {
     console.error('Init admin error:', error)
     return NextResponse.json(

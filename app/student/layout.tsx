@@ -1,67 +1,93 @@
-import Link from 'next/link'
-import { UserButton } from '@clerk/nextjs'
-import { Separator } from '@/components/ui/separator'
-import { requireStudent } from '@/lib/auth'
-import { redirect } from 'next/navigation'
+'use client'
 
-export default async function StudentLayout({
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { LogoutButton } from '@/components/logout-button'
+import { useEffect, useState } from 'react'
+
+export default function StudentLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const user = await requireStudent()
+  const pathname = usePathname()
+  const [user, setUser] = useState<any>(null)
 
-  if (!user) {
-    redirect('/')
-  }
+  useEffect(() => {
+    // Fetch user info
+    fetch('/api/student/whoami')
+      .then((res) => res.json())
+      .then((data) => setUser(data))
+      .catch(() => {
+        window.location.href = '/sign-in'
+      })
+  }, [])
 
   const navItems = [
-    { href: '/student', label: 'Dashboard' },
-    { href: '/student/classes', label: 'My Classes' },
-    { href: '/student/assessments', label: 'Assignments' },
-    { href: '/student/grades', label: 'Grades' },
+    { href: '/student', label: 'Dashboard', icon: '📊' },
+    { href: '/student/classes', label: 'My Classes', icon: '📚' },
+    { href: '/student/assignments', label: 'Assignments', icon: '📋' },
+    { href: '/student/grades', label: 'Grades', icon: '📈' },
   ]
 
-  return (
-    <div className="flex min-h-screen">
-      {/* Left Sidebar */}
-      <aside className="w-64 border-r bg-muted/40 p-6">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold">Student Portal</h1>
-          <p className="text-sm text-muted-foreground mt-1">CS Learning Platform</p>
+  if (!user) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
         </div>
+      </div>
+    )
+  }
 
-        <Separator className="mb-6" />
-
-        <nav className="space-y-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              {item.label}
+  return (
+    <div className="container-fluid p-0">
+      <div className="row g-0">
+        {/* Sidebar */}
+        <div className="col-md-3 col-lg-2 student-sidebar">
+          <div className="p-4">
+            {/* Brand */}
+            <Link href="/student" className="text-decoration-none">
+              <h2 className="text-white fw-bold mb-1">Student Portal</h2>
+              <p className="text-white-50 small mb-0">CS Learning Platform</p>
             </Link>
-          ))}
-        </nav>
 
-        <Separator className="my-6" />
+            <hr className="border-white opacity-25 my-4" />
 
-        <div className="space-y-2">
-          <div className="px-3">
-            <div className="text-xs text-muted-foreground mb-2">Logged in as:</div>
-            <div className="text-sm font-medium mb-2">{user.fullName || user.email}</div>
-            <UserButton afterSignOutUrl="/" />
+            {/* Navigation */}
+            <nav className="nav flex-column">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`nav-link d-flex align-items-center ${
+                    pathname === item.href ? 'active' : ''
+                  }`}
+                >
+                  <span className="me-2">{item.icon}</span>
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+
+            <hr className="border-white opacity-25 my-4" />
+
+            {/* User Info */}
+            <div className="mt-auto">
+              <div className="small text-white-50 mb-2">Logged in as:</div>
+              <div className="small text-white mb-3">{user.fullName || user.email}</div>
+              <LogoutButton />
+            </div>
           </div>
         </div>
-      </aside>
 
-      {/* Main Content */}
-      <main className="flex-1">
-        <div className="container mx-auto p-8">
-          {children}
+        {/* Main Content */}
+        <div className="col-md-9 col-lg-10">
+          <div className="p-4 p-md-5">
+            {children}
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   )
 }

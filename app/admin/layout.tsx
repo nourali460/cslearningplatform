@@ -1,96 +1,69 @@
-import Link from 'next/link'
-import { UserButton } from '@clerk/nextjs'
-import { Separator } from '@/components/ui/separator'
-import { requireAdmin } from '@/lib/auth'
-import { redirect } from 'next/navigation'
-import { AdminFilterBar } from '@/components/admin/AdminFilterBar'
-import { getFilterOptions, type AdminFilters } from '@/lib/admin-filters'
+'use client'
 
-export default async function AdminLayout({
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { LogoutButton } from '@/components/logout-button'
+
+export default function AdminLayout({
   children,
-  searchParams,
 }: {
   children: React.ReactNode
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-  const user = await requireAdmin()
-
-  if (!user) {
-    redirect('/')
-  }
-
-  // Parse search params for filters
-  const params = await searchParams
-  const filters: AdminFilters = {
-    term: params && typeof params.term === 'string' ? params.term : undefined,
-    year: params && typeof params.year === 'string' ? parseInt(params.year) : undefined,
-    professorId:
-      params && typeof params.professorId === 'string' ? params.professorId : undefined,
-    courseId: params && typeof params.courseId === 'string' ? params.courseId : undefined,
-    classId: params && typeof params.classId === 'string' ? params.classId : undefined,
-    studentId: params && typeof params.studentId === 'string' ? params.studentId : undefined,
-    assessmentId:
-      params && typeof params.assessmentId === 'string' ? params.assessmentId : undefined,
-  }
-
-  // Get cascading filter options
-  const filterOptions = await getFilterOptions(filters)
+  const pathname = usePathname()
 
   const navItems = [
-    { href: '/admin/overview', label: 'Overview' },
-    { href: '/admin/people', label: 'People' },
-    { href: '/admin/courses', label: 'Courses & Classes' },
-    { href: '/admin/assessments', label: 'Assessments & Grades' },
+    { href: '/admin/overview', label: 'Overview', icon: '📊' },
+    { href: '/admin/people', label: 'People', icon: '👥' },
+    { href: '/admin/courses', label: 'Courses & Classes', icon: '📚' },
+    { href: '/admin/assessments', label: 'Assessments & Grades', icon: '📝' },
   ]
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left Sidebar */}
-      <aside className="w-64 border-r bg-muted/40 p-6">
-        <div className="mb-8">
-          <Link href="/admin/overview">
-            <h1 className="text-2xl font-bold cursor-pointer hover:text-primary transition-colors">
-              Admin Panel
-            </h1>
-          </Link>
-          <p className="text-sm text-muted-foreground mt-1">
-            CS Learning Platform
-          </p>
-        </div>
-
-        <Separator className="mb-6" />
-
-        <nav className="space-y-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              {item.label}
+    <div className="container-fluid p-0">
+      <div className="row g-0">
+        {/* Sidebar */}
+        <div className="col-md-3 col-lg-2 admin-sidebar">
+          <div className="p-4">
+            {/* Brand */}
+            <Link href="/admin/overview" className="text-decoration-none">
+              <h2 className="text-white fw-bold mb-1">Admin Panel</h2>
+              <p className="text-white-50 small mb-0">CS Learning Platform</p>
             </Link>
-          ))}
-        </nav>
 
-        <Separator className="my-6" />
+            <hr className="border-white opacity-25 my-4" />
 
-        <div className="space-y-2">
-          <div className="px-3">
-            <UserButton afterSignOutUrl="/" />
+            {/* Navigation */}
+            <nav className="nav flex-column">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`nav-link d-flex align-items-center ${
+                    pathname === item.href ? 'active' : ''
+                  }`}
+                >
+                  <span className="me-2">{item.icon}</span>
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+
+            <hr className="border-white opacity-25 my-4" />
+
+            {/* Logout */}
+            <div className="mt-auto">
+              <LogoutButton />
+            </div>
           </div>
         </div>
-      </aside>
 
-      {/* Main Content */}
-      <main className="flex-1">
-        <div className="container mx-auto p-8 space-y-6">
-          {/* Global Filter Bar */}
-          <AdminFilterBar options={filterOptions} />
-
-          {/* Page Content */}
-          {children}
+        {/* Main Content */}
+        <div className="col-md-9 col-lg-10">
+          <div className="p-4 p-md-5">
+            {children}
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   )
 }

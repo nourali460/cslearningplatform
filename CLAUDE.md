@@ -106,3 +106,11 @@ This is a fresh Next.js project with minimal setup. Not yet implemented:
   So basically, the original plan to use Neon was correct - we just needed to use it in the right environment (Next.js API routes) instead of trying to run it
   in standalone scripts!
 - Do not use Neon Adapter ever only use PrismaClient
+- when updating is complete, always properly configure routes and display the following:  Check your dev server and try visiting:
+  - http://localhost:3000 (main page)
+  - http://localhost:3000/admin (should redirect to overview if you're an admin)
+  - http://localhost:3000/professor (professor dashboard)
+  - http://localhost:3000/student (student dashboard)
+
+  All routes are now properly configured!
+- Create new objects instead of mutating for any objects that can update and triggers React re-render

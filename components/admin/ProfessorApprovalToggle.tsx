@@ -1,9 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Check, X, Loader2 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 
 type ProfessorApprovalToggleProps = {
   userId: string
@@ -51,46 +48,48 @@ export function ProfessorApprovalToggle({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">Updating...</span>
+      <div className="d-flex align-items-center gap-2">
+        <div className="spinner-border spinner-border-sm text-primary" role="status">
+          <span className="visually-hidden">Updating...</span>
+        </div>
+        <span className="small text-muted">Updating...</span>
       </div>
     )
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="d-flex align-items-center gap-2">
       {isApproved ? (
         <>
-          <Badge variant="default" className="bg-green-600">
-            <Check className="mr-1 h-3 w-3" />
-            Approved
-          </Badge>
-          <Button
-            variant="ghost"
-            size="sm"
+          <span className="badge bg-success">
+            <i className="bi bi-check-circle-fill me-1"></i>
+            Active
+          </span>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-danger"
             onClick={handleToggle}
-            className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-            title="Revoke approval"
+            title="Deactivate professor"
           >
-            <X className="h-4 w-4" />
-          </Button>
+            <i className="bi bi-x-circle me-1"></i>
+            Deactivate
+          </button>
         </>
       ) : (
         <>
-          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-            <X className="mr-1 h-3 w-3" />
-            Pending
-          </Badge>
-          <Button
-            variant="ghost"
-            size="sm"
+          <span className="badge bg-warning text-dark">
+            <i className="bi bi-exclamation-circle-fill me-1"></i>
+            Inactive
+          </span>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-success"
             onClick={handleToggle}
-            className="h-8 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
-            title="Approve professor"
+            title="Activate professor"
           >
-            <Check className="h-4 w-4" />
-          </Button>
+            <i className="bi bi-check-circle me-1"></i>
+            Activate
+          </button>
         </>
       )}
     </div>

@@ -12,19 +12,19 @@ datasource db {
 }
 
 // ---------------------------------------------------------
-// USERS  (Clerk → local user profile)
+// USERS  (Simple auth with plain-text passwords)
 // ---------------------------------------------------------
 
 model User {
-  id         String   @id @default(uuid()) @db.Uuid
-  clerkId    String   @unique
-  role       String   // 'professor' | 'student' | 'admin'
-  email      String   @unique
-  fullName   String?
-  username   String?  @unique                // For professors, used in class codes
-  isApproved Boolean  @default(true)         // Professors need approval to create classes
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id               String   @id @default(uuid()) @db.Uuid
+  email            String   @unique
+  password         String                        // Plain-text password
+  role             String                        // 'professor' | 'student' | 'admin'
+  fullName         String?
+  usernameSchoolId String?  @unique             // School ID (0-1000000) for students/professors, used in class codes
+  isApproved       Boolean  @default(true)      // Professors need approval
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   // Relations
   professorClasses Class[]                  @relation("ProfessorClasses")
@@ -72,10 +72,12 @@ model Class {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  course       Course       @relation(fields: [courseId],    references: [id])
-  professor    User         @relation("ProfessorClasses", fields: [professorId], references: [id])
+  course       Course                 @relation(fields: [courseId],    references: [id])
+  professor    User                   @relation("ProfessorClasses", fields: [professorId], references: [id])
   enrollments  Enrollment[]
   assessments  Assessment[]
+  rubrics      Rubric[]
+  submissions  AssessmentSubmission[]
 
   @@map("classes")
 }
@@ -100,23 +102,56 @@ model Enrollment {
 }
 
 // ---------------------------------------------------------
+// ENUMS
+// ---------------------------------------------------------
+
+enum AssessmentType {
+  INTERACTIVE_LESSON
+  LAB
+  EXAM
+  QUIZ
+  DISCUSSION
+}
+
+enum SubmissionType {
+  TEXT      // Text or URL only
+  FILE      // File upload only
+  BOTH      // Text and files
+  NONE      // No submission required (e.g., in-class work)
+}
+
+enum SubmissionStatus {
+  DRAFT        // Saved but not submitted
+  SUBMITTED    // Turned in, awaiting grading
+  GRADED       // Score assigned
+  RETURNED     // Needs revision
+  LATE         // Submitted after due date
+}
+
+// ---------------------------------------------------------
 // ASSESSMENTS  (Labs / assignments / exams)
 // ---------------------------------------------------------
 
 model Assessment {
-  id          String   @id @default(uuid()) @db.Uuid
-  classId     String   @db.Uuid
-  title       String
-  slug        String
-  description String?
-  dueAt       DateTime?
-  maxPoints   Decimal  @default("100.00") @db.Decimal(5, 2)
-  orderIndex  Int?
-  createdAt   DateTime @default(now())
+  id                    String         @id @default(uuid()) @db.Uuid
+  classId               String         @db.Uuid
+  title                 String
+  slug                  String
+  description           String?
+  dueAt                 DateTime?
+  maxPoints             Decimal        @default("100.00") @db.Decimal(5, 2)
+  orderIndex            Int?
+  type                  AssessmentType @default(LAB)
+  submissionType        SubmissionType @default(BOTH)
+  allowMultipleAttempts Boolean        @default(false)
+  maxAttempts           Int            @default(1)
+  createdAt             DateTime       @default(now())
 
   // Relations
   class       Class                  @relation(fields: [classId], references: [id])
   submissions AssessmentSubmission[]
+  rubric      Rubric?                @relation(fields: [rubricId], references: [id])
+  rubricId    String?                @db.Uuid
 
   @@map("assessments")
 }
@@ -126,23 +161,64 @@ model Assessment {
 // ---------------------------------------------------------
 
 model AssessmentSubmission {
-  id             String   @id @default(uuid()) @db.Uuid
-  assessmentId   String   @db.Uuid
-  studentId      String   @db.Uuid
-  submittedAt    DateTime @default(now())
-  autoScore      Decimal?  @db.Decimal(5, 2)
-  manualScore    Decimal?  @db.Decimal(5, 2)
-  totalScore     Decimal?  @db.Decimal(5, 2)
-  feedback       String?  // final combined feedback text
-  feedbackFiles  Json?    // array/object of raw feedback blocks/logs
-  status         String?
-  attemptNumber  Int      @default(1)
-  createdAt      DateTime @default(now())
+  id              String           @id @default(uuid()) @db.Uuid
+  assessmentId    String           @db.Uuid
+  studentId       String           @db.Uuid
+  classId         String?          @db.Uuid  // Direct class association for easier filtering (optional for migration)
+  submittedAt     DateTime         @default(now())
+  submissionText  String?          // Text content or URLs (GitHub, Google Docs, etc.)
+  submissionFiles Json?            // Array of file metadata: [{filename, size, url, uploadedAt}]
+  autoScore       Decimal?         @db.Decimal(5, 2)
+  manualScore     Decimal?         @db.Decimal(5, 2)
+  totalScore      Decimal?         @db.Decimal(5, 2)
+  feedback        String?          // Professor's text feedback
+  feedbackFiles   Json?            // Array of feedback file attachments
+  status          SubmissionStatus @default(DRAFT)
+  isLate          Boolean          @default(false)
+  attemptNumber   Int              @default(1)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   // Relations
-  assessment     Assessment @relation(fields: [assessmentId], references: [id])
-  student        User       @relation("SubmissionStudent", fields: [studentId], references: [id])
+  assessment      Assessment @relation(fields: [assessmentId], references: [id])
+  student         User       @relation("SubmissionStudent", fields: [studentId], references: [id])
+  class           Class?     @relation(fields: [classId], references: [id])
 
-  @@unique([assessmentId, studentId, attemptNumber])
+  @@unique([assessmentId, studentId])
+  @@index([classId, studentId])
   @@map("assessment_submissions")
+}
+
+// ---------------------------------------------------------
+// RUBRICS  (Grading rubrics with criteria)
+// ---------------------------------------------------------
+
+model Rubric {
+  id          String   @id @default(uuid()) @db.Uuid
+  classId     String   @db.Uuid
+  title       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  class       Class             @relation(fields: [classId], references: [id])
+  criteria    RubricCriterion[]
+  assessments Assessment[]
+
+  @@map("rubrics")
+}
+
+model RubricCriterion {
+  id          String  @id @default(uuid()) @db.Uuid
+  rubricId    String  @db.Uuid
+  title       String
+  description String?
+  maxPoints   Decimal @db.Decimal(5, 2)
+  orderIndex  Int     @default(0)
+
+  // Relations
+  rubric Rubric @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+
+  @@map("rubric_criteria")
 }
