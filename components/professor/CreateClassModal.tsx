@@ -2,6 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { Calendar, Hash, BookOpen, X } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
 interface Course {
   id: string
@@ -19,7 +31,7 @@ interface ProfessorClass {
   }
   term: string
   year: number
-  section: string
+  section: string | null
 }
 
 interface CreateClassModalProps {
@@ -69,7 +81,7 @@ export function CreateClassModal({
           cls.course.id === course.id &&
           cls.term === term &&
           cls.year === year &&
-          cls.section.padStart(2, '0') === sectionPadded
+          cls.section?.padStart(2, '0') === sectionPadded
       )
       setIsDuplicate(duplicate)
 
@@ -150,202 +162,163 @@ export function CreateClassModal({
   }
 
   return (
-    <div
-      className="modal show d-block"
-      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-      onClick={onClose}
-    >
-      <div
-        className="modal-dialog modal-dialog-centered modal-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-content border-0 shadow-lg">
-          {/* Modal Header */}
-          <div className="modal-header bg-primary text-white border-0">
-            <div>
-              <h5 className="modal-title fw-bold mb-1">
-                <BookOpen size={20} className="me-2" style={{ display: 'inline', marginTop: '-4px' }} />
-                Create New Class
-              </h5>
-              <p className="mb-0 small opacity-75">
-                {course.code} - {course.title}
-              </p>
-            </div>
-            <button
-              type="button"
-              className="btn-close btn-close-white"
-              onClick={onClose}
-              disabled={isSubmitting}
-            ></button>
-          </div>
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <BookOpen size={20} />
+            Create New Class
+          </DialogTitle>
+          <DialogDescription>
+            {course.code} - {course.title}
+          </DialogDescription>
+        </DialogHeader>
 
-          {/* Modal Body */}
-          <div className="modal-body p-4">
-            {/* Course Info Card */}
-            <div className="card bg-light border-0 mb-4">
-              <div className="card-body">
-                <div>
-                  <span className="badge bg-primary mb-2">{course.code}</span>
-                  <h6 className="fw-bold mb-1">{course.title}</h6>
-                  {course.subject && (
-                    <p className="text-muted small mb-2">
-                      <i className="bi bi-tag-fill me-1"></i>
-                      {course.subject}
-                    </p>
-                  )}
-                  <p className="text-muted small mb-0">
-                    {course.description || 'No description available.'}
+        <div className="space-y-4">
+          {/* Course Info Card */}
+          <Card className="bg-muted">
+            <CardContent className="pt-6">
+              <div>
+                <Badge variant="purple" className="mb-2">{course.code}</Badge>
+                <h3 className="font-bold mb-1">{course.title}</h3>
+                {course.subject && (
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {course.subject}
                   </p>
-                </div>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  {course.description || 'No description available.'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Error Alert */}
+          {error && (
+            <Card className="border-l-4 border-l-error bg-error/10">
+              <CardContent className="py-3">
+                <p className="text-sm text-error">{error}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Term Selection */}
+              <div>
+                <label className="text-sm font-medium mb-2 flex items-center gap-1">
+                  <Calendar size={16} />
+                  Term <span className="text-error">*</span>
+                </label>
+                <Select value={term} onValueChange={setTerm} disabled={isSubmitting}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select term..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TERMS.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Year Selection */}
+              <div>
+                <label className="text-sm font-medium mb-2 flex items-center gap-1">
+                  <Calendar size={16} />
+                  Year <span className="text-error">*</span>
+                </label>
+                <Select value={year.toString()} onValueChange={(val) => setYear(parseInt(val, 10))} disabled={isSubmitting}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {YEARS.map((y) => (
+                      <SelectItem key={y} value={y.toString()}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Section Input */}
+              <div>
+                <label className="text-sm font-medium mb-2 flex items-center gap-1">
+                  <Hash size={16} />
+                  Section <span className="text-error">*</span>
+                </label>
+                <Input
+                  type="number"
+                  value={section}
+                  onChange={(e) => setSection(e.target.value)}
+                  placeholder="e.g., 1"
+                  min="1"
+                  max="99"
+                  required
+                  disabled={isSubmitting}
+                />
+                <p className="text-xs text-muted-foreground mt-1">1-2 digit number (1-99)</p>
               </div>
             </div>
 
-            {/* Error Alert */}
-            {error && (
-              <div className="alert alert-danger d-flex align-items-center" role="alert">
-                <i className="bi bi-exclamation-triangle-fill me-2"></i>
-                <div>{error}</div>
-              </div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={handleSubmit}>
-              <div className="row g-3">
-                {/* Term Selection */}
-                <div className="col-md-4">
-                  <label className="form-label fw-semibold">
-                    <Calendar size={16} className="me-1" style={{ marginTop: '-2px' }} />
-                    Term <span className="text-danger">*</span>
-                  </label>
-                  <select
-                    className="form-select"
-                    value={term}
-                    onChange={(e) => setTerm(e.target.value)}
-                    required
-                    disabled={isSubmitting}
-                  >
-                    <option value="">Select term...</option>
-                    {TERMS.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Year Selection */}
-                <div className="col-md-4">
-                  <label className="form-label fw-semibold">
-                    <Calendar size={16} className="me-1" style={{ marginTop: '-2px' }} />
-                    Year <span className="text-danger">*</span>
-                  </label>
-                  <select
-                    className="form-select"
-                    value={year}
-                    onChange={(e) => setYear(parseInt(e.target.value, 10))}
-                    required
-                    disabled={isSubmitting}
-                  >
-                    {YEARS.map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Section Input */}
-                <div className="col-md-4">
-                  <label className="form-label fw-semibold">
-                    <Hash size={16} className="me-1" style={{ marginTop: '-2px' }} />
-                    Section <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={section}
-                    onChange={(e) => setSection(e.target.value)}
-                    placeholder="e.g., 1"
-                    min="1"
-                    max="99"
-                    required
-                    disabled={isSubmitting}
-                  />
-                  <div className="form-text">1-2 digit number (1-99)</div>
-                </div>
-              </div>
-
-              {/* Class Code Preview */}
-              {classCodePreview && (
-                <div className="mt-4">
-                  <div className="card border-primary">
-                    <div className="card-body">
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                          <h6 className="text-primary fw-bold mb-1">
-                            <i className="bi bi-code-square me-2"></i>
-                            Class Code Preview
-                          </h6>
-                          <p className="text-muted small mb-0">
-                            Students will use this code to enroll in your class
-                          </p>
-                        </div>
-                        <div>
-                          <span className="badge bg-primary fs-5 px-3 py-2 font-monospace">
-                            {classCodePreview}
-                          </span>
-                        </div>
-                      </div>
+            {/* Class Code Preview */}
+            {classCodePreview && (
+              <Card className="border-l-4 border-l-accent-purple">
+                <CardContent className="py-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-accent-purple font-bold mb-1 flex items-center gap-2">
+                        <Hash size={18} />
+                        Class Code Preview
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Students will use this code to enroll in your class
+                      </p>
+                    </div>
+                    <div>
+                      <Badge variant="solid-purple" className="text-lg px-4 py-2 font-mono">
+                        {classCodePreview}
+                      </Badge>
                     </div>
                   </div>
-                </div>
-              )}
+                </CardContent>
+              </Card>
+            )}
 
-              {/* Info Box */}
-              <div className="alert alert-info mt-4 mb-0" role="alert">
-                <i className="bi bi-info-circle me-2"></i>
-                <strong>What happens next?</strong> When you create this class, a unique class code
-                will be generated. Share this code with your students so they can enroll.
-              </div>
-            </form>
-          </div>
+            {/* Info Box */}
+            <Card className="border-l-4 border-l-info bg-info/10">
+              <CardContent className="py-3">
+                <p className="text-sm">
+                  <strong>What happens next?</strong> When you create this class, a unique class code
+                  will be generated. Share this code with your students so they can enroll.
+                </p>
+              </CardContent>
+            </Card>
 
-          {/* Modal Footer */}
-          <div className="modal-footer border-0 bg-light">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              onClick={handleSubmit}
-              disabled={isSubmitting || !term || !section || !/^\d{1,2}$/.test(section) || isDuplicate}
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Creating Class...
-                </>
-              ) : isDuplicate ? (
-                <>
-                  <i className="bi bi-exclamation-circle me-2"></i>
-                  Already Created
-                </>
-              ) : (
-                <>
-                  <i className="bi bi-plus-circle me-2"></i>
-                  Create Class
-                </>
-              )}
-            </button>
-          </div>
+            {/* Action Buttons */}
+            <div className="flex gap-2 justify-end pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting || isDuplicate}
+              >
+                {isSubmitting ? 'Creating...' : 'Create Class'}
+              </Button>
+            </div>
+          </form>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

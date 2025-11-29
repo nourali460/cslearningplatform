@@ -1,4 +1,4 @@
-import { db } from '@/lib/db'
+import { db } from "@/lib/db";
 import {
   buildClassFilters,
   buildEnrollmentFilters,
@@ -6,32 +6,70 @@ import {
   buildSubmissionFilters,
   getFilterOptions,
   type AdminFilters,
-} from '@/lib/admin-filters'
-import { AdminFilterBar } from '@/components/admin/AdminFilterBar'
+} from "@/lib/admin-filters";
+import { AdminFilterBar } from "@/components/admin/AdminFilterBar";
+import {
+  Users,
+  BookOpen,
+  GraduationCap,
+  ClipboardCheck,
+  Crown,
+  UserCheck,
+  AlertTriangle,
+  School,
+  FileText,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default async function OverviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const params = await searchParams
+  const params = await searchParams;
   const filters: AdminFilters = {
-    term: params && typeof params.term === 'string' ? params.term : undefined,
-    year: params && typeof params.year === 'string' ? parseInt(params.year) : undefined,
+    term: params && typeof params.term === "string" ? params.term : undefined,
+    year:
+      params && typeof params.year === "string"
+        ? parseInt(params.year)
+        : undefined,
     professorId:
-      params && typeof params.professorId === 'string' ? params.professorId : undefined,
-    courseId: params && typeof params.courseId === 'string' ? params.courseId : undefined,
-    classId: params && typeof params.classId === 'string' ? params.classId : undefined,
-    studentId: params && typeof params.studentId === 'string' ? params.studentId : undefined,
-    assessmentId: params && typeof params.assessmentId === 'string' ? params.assessmentId : undefined,
-  }
+      params && typeof params.professorId === "string"
+        ? params.professorId
+        : undefined,
+    courseId:
+      params && typeof params.courseId === "string"
+        ? params.courseId
+        : undefined,
+    classId:
+      params && typeof params.classId === "string"
+        ? params.classId
+        : undefined,
+    studentId:
+      params && typeof params.studentId === "string"
+        ? params.studentId
+        : undefined,
+    assessmentId:
+      params && typeof params.assessmentId === "string"
+        ? params.assessmentId
+        : undefined,
+  };
 
-  const filterOptions = await getFilterOptions(filters)
+  const filterOptions = await getFilterOptions(filters);
 
-  const classWhere = buildClassFilters(filters)
-  const enrollmentWhere = buildEnrollmentFilters(filters)
-  const assessmentWhere = buildAssessmentFilters(filters)
-  const submissionWhere = buildSubmissionFilters(filters)
+  const classWhere = buildClassFilters(filters);
+  const enrollmentWhere = buildEnrollmentFilters(filters);
+  const assessmentWhere = buildAssessmentFilters(filters);
+  const submissionWhere = buildSubmissionFilters(filters);
 
   const [
     totalUsers,
@@ -48,9 +86,9 @@ export default async function OverviewPage({
     allStudents,
   ] = await Promise.all([
     db.user.count(),
-    db.user.count({ where: { role: 'admin' } }),
-    db.user.count({ where: { role: 'professor' } }),
-    db.user.count({ where: { role: 'student' } }),
+    db.user.count({ where: { role: "admin" } }),
+    db.user.count({ where: { role: "professor" } }),
+    db.user.count({ where: { role: "student" } }),
     db.course.count(),
     db.class.count({ where: classWhere }),
     db.enrollment.count({ where: enrollmentWhere }),
@@ -68,11 +106,11 @@ export default async function OverviewPage({
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 10,
     }),
     db.user.findMany({
-      where: { role: 'professor' },
+      where: { role: "professor" },
       select: {
         id: true,
         _count: {
@@ -83,7 +121,7 @@ export default async function OverviewPage({
       },
     }),
     db.user.findMany({
-      where: { role: 'student' },
+      where: { role: "student" },
       select: {
         id: true,
         _count: {
@@ -93,167 +131,203 @@ export default async function OverviewPage({
         },
       },
     }),
-  ])
+  ]);
 
   const professorsWithNoClasses = allProfessors.filter(
     (prof) => prof._count.professorClasses === 0
-  ).length
+  ).length;
 
   const studentsWithNoEnrollments = allStudents.filter(
     (student) => student._count.enrollments === 0
-  ).length
+  ).length;
 
   return (
-    <div>
+    <div className="space-y-4">
       {/* Header */}
-      <div className="mb-4">
-        <h1 className="display-5 fw-bold text-primary mb-2">📊 Platform Overview</h1>
-        <p className="text-muted lead">High-level platform snapshot. Use filters to view specific data.</p>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground mb-1">
+          Platform Overview
+        </h1>
+        <p className="text-sm text-foreground-secondary">
+          High-level platform snapshot. Use filters to view specific data.
+        </p>
       </div>
 
       {/* Filter Bar */}
-      <div className="mb-4">
-        <AdminFilterBar options={filterOptions} />
-      </div>
+      <AdminFilterBar options={filterOptions} />
 
       {/* Statistics Cards */}
-      <div className="row g-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Total Users Card */}
-        <div className="col-md-6 col-lg-3">
-          <div className="card h-100 border-primary">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <h6 className="card-subtitle text-muted mb-0">Total Users</h6>
-                <span className="fs-4">👥</span>
-              </div>
-              <h2 className="card-title text-primary fw-bold mb-3">{totalUsers}</h2>
-              <div className="small text-muted">
-                <div className="d-flex justify-content-between mb-1">
-                  <span>👑 Admins:</span>
-                  <span className="fw-semibold">{adminCount}</span>
-                </div>
-                <div className="d-flex justify-content-between mb-1">
-                  <span>👨‍🏫 Professors:</span>
-                  <span className="fw-semibold">{professorCount}</span>
-                </div>
-                <div className="d-flex justify-content-between">
-                  <span>🎓 Students:</span>
-                  <span className="fw-semibold">{studentCount}</span>
-                </div>
-              </div>
-              {(professorsWithNoClasses > 0 || studentsWithNoEnrollments > 0) && (
-                <div className="mt-3 pt-3 border-top">
-                  {professorsWithNoClasses > 0 && (
-                    <div className="small text-warning mb-1">
-                      ⚠️ {professorsWithNoClasses} professor{professorsWithNoClasses !== 1 ? 's' : ''} with 0 classes
-                    </div>
-                  )}
-                  {studentsWithNoEnrollments > 0 && (
-                    <div className="small text-warning">
-                      ⚠️ {studentsWithNoEnrollments} student{studentsWithNoEnrollments !== 1 ? 's' : ''} not enrolled
-                    </div>
-                  )}
-                </div>
-              )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
+            <CardTitle className="text-xs font-medium text-foreground-secondary">
+              Total Users
+            </CardTitle>
+            <Users className="h-4 w-4 text-accent-orange" />
+          </CardHeader>
+          <CardContent className="px-3 pb-3">
+            <div className="text-xl font-semibold text-foreground mb-2">
+              {totalUsers}
             </div>
-          </div>
-        </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-foreground-tertiary">
+                  <Crown className="h-3 w-3" />
+                  <span>Admins:</span>
+                </div>
+                <span className="font-medium text-foreground">{adminCount}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-foreground-tertiary">
+                  <UserCheck className="h-3 w-3" />
+                  <span>Professors:</span>
+                </div>
+                <span className="font-medium text-foreground">
+                  {professorCount}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-foreground-tertiary">
+                  <GraduationCap className="h-3 w-3" />
+                  <span>Students:</span>
+                </div>
+                <span className="font-medium text-foreground">{studentCount}</span>
+              </div>
+            </div>
+            {(professorsWithNoClasses > 0 || studentsWithNoEnrollments > 0) && (
+              <div className="mt-2 pt-2 border-t border-border space-y-1">
+                {professorsWithNoClasses > 0 && (
+                  <div className="flex items-start gap-1.5 text-xs text-warning">
+                    <AlertTriangle className="h-3 w-3 flex-shrink-0 mt-0.5" />
+                    <span>
+                      {professorsWithNoClasses} professor
+                      {professorsWithNoClasses !== 1 ? "s" : ""} with 0 classes
+                    </span>
+                  </div>
+                )}
+                {studentsWithNoEnrollments > 0 && (
+                  <div className="flex items-start gap-1.5 text-xs text-warning">
+                    <AlertTriangle className="h-3 w-3 flex-shrink-0 mt-0.5" />
+                    <span>
+                      {studentsWithNoEnrollments} student
+                      {studentsWithNoEnrollments !== 1 ? "s" : ""} not enrolled
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Courses Card */}
-        <div className="col-md-6 col-lg-3">
-          <div className="card h-100 border-info">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <h6 className="card-subtitle text-muted mb-0">Courses</h6>
-                <span className="fs-4">📚</span>
-              </div>
-              <h2 className="card-title text-info fw-bold mb-1">{totalCourses}</h2>
-              <p className="small text-muted mb-0">In catalog</p>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
+            <CardTitle className="text-xs font-medium text-foreground-secondary">
+              Courses
+            </CardTitle>
+            <BookOpen className="h-4 w-4 text-accent-purple" />
+          </CardHeader>
+          <CardContent className="px-3 pb-3">
+            <div className="text-xl font-semibold text-foreground mb-1">
+              {totalCourses}
             </div>
-          </div>
-        </div>
+            <p className="text-xs text-foreground-tertiary">In catalog</p>
+          </CardContent>
+        </Card>
 
         {/* Classes Card */}
-        <div className="col-md-6 col-lg-3">
-          <div className="card h-100 border-success">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <h6 className="card-subtitle text-muted mb-0">
-                  {Object.keys(classWhere).length > 0 ? 'Filtered' : 'Active'} Classes
-                </h6>
-                <span className="fs-4">🏫</span>
-              </div>
-              <h2 className="card-title text-success fw-bold mb-1">{totalClasses}</h2>
-              <p className="small text-muted mb-0">{totalEnrollments} enrollments</p>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
+            <CardTitle className="text-xs font-medium text-foreground-secondary">
+              {Object.keys(classWhere).length > 0 ? "Filtered" : "Active"} Classes
+            </CardTitle>
+            <School className="h-4 w-4 text-success" />
+          </CardHeader>
+          <CardContent className="px-3 pb-3">
+            <div className="text-xl font-semibold text-foreground mb-1">
+              {totalClasses}
             </div>
-          </div>
-        </div>
+            <p className="text-xs text-foreground-tertiary">
+              {totalEnrollments} enrollments
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Assessments Card */}
-        <div className="col-md-6 col-lg-3">
-          <div className="card h-100 border-warning">
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <h6 className="card-subtitle text-muted mb-0">Assessments</h6>
-                <span className="fs-4">📝</span>
-              </div>
-              <h2 className="card-title text-warning fw-bold mb-1">{totalAssessments}</h2>
-              <p className="small text-muted mb-0">{totalSubmissions} submissions</p>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
+            <CardTitle className="text-xs font-medium text-foreground-secondary">
+              Assessments
+            </CardTitle>
+            <FileText className="h-4 w-4 text-info" />
+          </CardHeader>
+          <CardContent className="px-3 pb-3">
+            <div className="text-xl font-semibold text-foreground mb-1">
+              {totalAssessments}
             </div>
-          </div>
-        </div>
+            <p className="text-xs text-foreground-tertiary">
+              {totalSubmissions} submissions
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Recent Classes Table */}
-      <div className="card">
-        <div className="card-header bg-primary text-white">
-          <h5 className="card-title mb-0">
-            {Object.keys(classWhere).length > 0 ? '🔍 Filtered Classes' : '🕒 Recent Classes'}
-          </h5>
-        </div>
-        <div className="card-body p-0">
+      <Card>
+        <CardHeader className="py-2 px-3">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <ClipboardCheck className="h-4 w-4 text-accent-orange" />
+            {Object.keys(classWhere).length > 0
+              ? "Filtered Classes"
+              : "Recent Classes"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
           {classes.length === 0 ? (
-            <div className="text-center py-5 text-muted">
+            <div className="text-center py-12 text-foreground-tertiary">
               <p className="mb-0">No classes found matching the selected filters</p>
             </div>
           ) : (
-            <div className="table-scroll">
-              <table className="table table-hover mb-0">
-                <thead>
-                  <tr>
-                    <th className="text-white">Class Code</th>
-                    <th className="text-white">Title</th>
-                    <th className="text-white">Term</th>
-                    <th className="text-white">Year</th>
-                    <th className="text-white">Professor</th>
-                    <th className="text-white text-end">Enrollments</th>
-                    <th className="text-white text-end">Assessments</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {classes.map((classItem) => (
-                    <tr key={classItem.id}>
-                      <td><code className="text-primary fw-semibold">{classItem.classCode}</code></td>
-                      <td className="fw-semibold">{classItem.title}</td>
-                      <td>{classItem.term}</td>
-                      <td>{classItem.year}</td>
-                      <td className="text-muted">
-                        {classItem.professor.fullName || classItem.professor.email}
-                      </td>
-                      <td className="text-end">
-                        <span className="badge bg-info">{classItem._count.enrollments}</span>
-                      </td>
-                      <td className="text-end">
-                        <span className="badge bg-warning text-dark">{classItem._count.assessments}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Class Code</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Term</TableHead>
+                  <TableHead>Year</TableHead>
+                  <TableHead>Professor</TableHead>
+                  <TableHead className="text-right">Enrollments</TableHead>
+                  <TableHead className="text-right">Assessments</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {classes.map((classItem) => (
+                  <TableRow key={classItem.id}>
+                    <TableCell>
+                      <code className="text-xs font-mono font-semibold text-accent-orange bg-accent-orange/10 px-2 py-1 rounded-lg">
+                        {classItem.classCode}
+                      </code>
+                    </TableCell>
+                    <TableCell className="font-medium">{classItem.title}</TableCell>
+                    <TableCell>{classItem.term}</TableCell>
+                    <TableCell>{classItem.year}</TableCell>
+                    <TableCell className="text-foreground-secondary">
+                      {classItem.professor.fullName || classItem.professor.email}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="info">{classItem._count.enrollments}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="warning">{classItem._count.assessments}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
-  )
+  );
 }

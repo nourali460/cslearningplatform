@@ -1,10 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Library, CheckCircle, Search, Filter, BookOpen, Archive } from 'lucide-react'
+import { Library, CheckCircle, Search, Filter, BookOpen, Archive, Loader2, AlertCircle } from 'lucide-react'
 import { CreateClassModal } from '@/components/professor/CreateClassModal'
 import { ClassCodeCopy } from '@/components/ClassCodeCopy'
 import { ClassStatusToggle } from '@/components/professor/ClassStatusToggle'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 interface Course {
   id: string
@@ -97,10 +103,10 @@ export default function AvailableCoursesPage() {
     }
   }
 
-  const handleClassCreated = () => {
+  const handleClassCreated = async () => {
     setSuccessMessage('Class created successfully! You can now view it in "My Classes" below.')
     setTimeout(() => setSuccessMessage(null), 5000)
-    fetchMyClasses()
+    await fetchMyClasses()
   }
 
   // Get unique subjects and levels
@@ -129,33 +135,41 @@ export default function AvailableCoursesPage() {
   const hasActiveFilters = searchTerm || subjectFilter !== 'all' || levelFilter !== 'all'
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Page Header */}
-      <div className="mb-4">
-        <h1 className="display-5 fw-bold text-primary mb-2">
-          <Library className="me-2" style={{ display: 'inline', marginTop: '-4px' }} />
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground mb-2 flex items-center gap-2">
+          <Library className="h-8 w-8" />
           Available Courses
         </h1>
-        <p className="text-muted lead">
+        <p className="text-foreground-secondary">
           Browse the course catalog and manage your classes
         </p>
       </div>
 
       {/* Success Alert */}
       {successMessage && (
-        <div className="alert alert-success d-flex align-items-center alert-dismissible fade show" role="alert">
-          <CheckCircle size={20} className="me-2" />
-          <div>{successMessage}</div>
-          <button type="button" className="btn-close" onClick={() => setSuccessMessage(null)}></button>
-        </div>
+        <Card className="border-l-4 border-l-success bg-success/10">
+          <CardContent className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle size={20} className="text-success" />
+              <span>{successMessage}</span>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setSuccessMessage(null)}>
+              ×
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* Error Alert */}
       {error && (
-        <div className="alert alert-danger d-flex align-items-center" role="alert">
-          <i className="bi bi-exclamation-triangle-fill me-2"></i>
-          <div>{error}</div>
-        </div>
+        <Card className="border-l-4 border-l-error bg-error/10">
+          <CardContent className="flex items-center gap-2 py-3">
+            <AlertCircle size={20} className="text-error" />
+            <span>{error}</span>
+          </CardContent>
+        </Card>
       )}
 
       {/* My Classes Section */}
@@ -174,155 +188,152 @@ export default function AvailableCoursesPage() {
           </div>
 
           {/* Class Filter Tabs */}
-          <ul className="nav nav-pills mb-3">
-            <li className="nav-item">
-              <button
-                className={`nav-link ${classFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setClassFilter('all')}
-              >
-                All <span className="badge bg-primary ms-2">{myClasses.length}</span>
-              </button>
-            </li>
-            <li className="nav-item">
-              <button
-                className={`nav-link ${classFilter === 'active' ? 'active' : ''}`}
-                onClick={() => setClassFilter('active')}
-              >
-                Active <span className="badge bg-success ms-2">{activeClasses.length}</span>
-              </button>
-            </li>
-            <li className="nav-item">
-              <button
-                className={`nav-link ${classFilter === 'past' ? 'active' : ''}`}
-                onClick={() => setClassFilter('past')}
-              >
-                Past <span className="badge bg-secondary ms-2">{pastClasses.length}</span>
-              </button>
-            </li>
-          </ul>
+          <div className="flex gap-2 mb-4">
+            <Button
+              variant={classFilter === 'all' ? 'default' : 'outline'}
+              onClick={() => setClassFilter('all')}
+              className="flex items-center gap-2"
+            >
+              All <Badge variant="purple">{myClasses.length}</Badge>
+            </Button>
+            <Button
+              variant={classFilter === 'active' ? 'default' : 'outline'}
+              onClick={() => setClassFilter('active')}
+              className="flex items-center gap-2"
+            >
+              Active <Badge variant="success">{activeClasses.length}</Badge>
+            </Button>
+            <Button
+              variant={classFilter === 'past' ? 'default' : 'outline'}
+              onClick={() => setClassFilter('past')}
+              className="flex items-center gap-2"
+            >
+              Past <Badge>{pastClasses.length}</Badge>
+            </Button>
+          </div>
 
           {/* Active Classes */}
           {(classFilter === 'all' || classFilter === 'active') && activeClasses.length > 0 && (
-            <div className="card border-0 shadow-sm mb-3">
-              <div className="card-header bg-success text-white">
-                <h6 className="mb-0 fw-semibold">Active Classes</h6>
-              </div>
-              <div className="table-responsive">
-                <table className="table table-hover mb-0">
-                  <thead className="bg-light">
-                    <tr>
-                      <th className="py-3">Class Code</th>
-                      <th className="py-3">Course</th>
-                      <th className="py-3">Term</th>
-                      <th className="py-3">Section</th>
-                      <th className="py-3 text-center">Students</th>
-                      <th className="py-3 text-center">Assessments</th>
-                      <th className="py-3 text-end">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>Active Classes</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Class Code</TableHead>
+                      <TableHead>Course</TableHead>
+                      <TableHead>Term</TableHead>
+                      <TableHead>Section</TableHead>
+                      <TableHead className="text-center">Students</TableHead>
+                      <TableHead className="text-center">Assessments</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {activeClasses.map((classItem) => (
-                      <tr key={classItem.id}>
-                        <td className="py-3">
+                      <TableRow key={classItem.id}>
+                        <TableCell>
                           <ClassCodeCopy classCode={classItem.classCode} />
-                        </td>
-                        <td className="py-3">
-                          <div className="fw-semibold">{classItem.course.code}</div>
-                          <div className="text-muted small">{classItem.course.title}</div>
-                        </td>
-                        <td className="py-3">
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-semibold">{classItem.course.code}</div>
+                          <div className="text-sm text-muted-foreground">{classItem.course.title}</div>
+                        </TableCell>
+                        <TableCell>
                           {classItem.term} {classItem.year}
-                        </td>
-                        <td className="py-3">
-                          <span className="badge bg-secondary">Section {classItem.section}</span>
-                        </td>
-                        <td className="py-3 text-center">
-                          <span className="badge bg-info">{classItem._count.enrollments}</span>
-                        </td>
-                        <td className="py-3 text-center">
-                          <span className="badge bg-info">{classItem._count.assessments}</span>
-                        </td>
-                        <td className="py-3 text-end">
+                        </TableCell>
+                        <TableCell>
+                          <Badge>Section {classItem.section}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="info">{classItem._count.enrollments}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="info">{classItem._count.assessments}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
                           <ClassStatusToggle
                             classId={classItem.id}
                             isActive={classItem.isActive}
                             onToggle={fetchData}
                           />
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
 
           {/* Past Classes */}
           {(classFilter === 'all' || classFilter === 'past') && pastClasses.length > 0 && (
-            <div className="card border-0 shadow-sm mb-3">
-              <div className="card-header bg-secondary text-white">
-                <h6 className="mb-0 fw-semibold">Past Classes</h6>
-              </div>
-              <div className="table-responsive">
-                <table className="table table-hover mb-0">
-                  <thead className="bg-light">
-                    <tr>
-                      <th className="py-3">Class Code</th>
-                      <th className="py-3">Course</th>
-                      <th className="py-3">Term</th>
-                      <th className="py-3">Section</th>
-                      <th className="py-3 text-center">Students</th>
-                      <th className="py-3 text-center">Assessments</th>
-                      <th className="py-3 text-end">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>Past Classes</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Class Code</TableHead>
+                      <TableHead>Course</TableHead>
+                      <TableHead>Term</TableHead>
+                      <TableHead>Section</TableHead>
+                      <TableHead className="text-center">Students</TableHead>
+                      <TableHead className="text-center">Assessments</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {pastClasses.map((classItem) => (
-                      <tr key={classItem.id} className="table-secondary">
-                        <td className="py-3">
+                      <TableRow key={classItem.id} className="bg-muted/50">
+                        <TableCell>
                           <ClassCodeCopy classCode={classItem.classCode} />
-                        </td>
-                        <td className="py-3">
-                          <div className="fw-semibold">{classItem.course.code}</div>
-                          <div className="text-muted small">{classItem.course.title}</div>
-                        </td>
-                        <td className="py-3">
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-semibold">{classItem.course.code}</div>
+                          <div className="text-sm text-muted-foreground">{classItem.course.title}</div>
+                        </TableCell>
+                        <TableCell>
                           {classItem.term} {classItem.year}
-                        </td>
-                        <td className="py-3">
-                          <span className="badge bg-secondary">Section {classItem.section}</span>
-                        </td>
-                        <td className="py-3 text-center">
-                          <span className="badge bg-secondary">{classItem._count.enrollments}</span>
-                        </td>
-                        <td className="py-3 text-center">
-                          <span className="badge bg-secondary">{classItem._count.assessments}</span>
-                        </td>
-                        <td className="py-3 text-end">
+                        </TableCell>
+                        <TableCell>
+                          <Badge>Section {classItem.section}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge>{classItem._count.enrollments}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge>{classItem._count.assessments}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
                           <ClassStatusToggle
                             classId={classItem.id}
                             isActive={classItem.isActive}
                             onToggle={fetchData}
                           />
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
 
           {displayedClasses.length === 0 && (
-            <div className="card border-0 shadow-sm">
-              <div className="card-body text-center py-4">
-                <p className="text-muted mb-0">
+            <Card>
+              <CardContent className="text-center py-8">
+                <p className="text-muted-foreground">
                   {classFilter === 'active' ? 'No active classes found.' :
                    classFilter === 'past' ? 'No past classes found.' :
                    'No classes found.'}
                 </p>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
@@ -340,62 +351,63 @@ export default function AvailableCoursesPage() {
 
       {/* Search and Filters */}
       {!loading && courses.length > 0 && (
-        <div className="card border-0 shadow-sm mb-4">
-          <div className="card-body">
-            <div className="row g-3">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
               {/* Search */}
-              <div className="col-md-5">
-                <div className="input-group">
-                  <span className="input-group-text">
-                    <Search size={18} />
-                  </span>
-                  <input
+              <div className="md:col-span-5">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
                     type="text"
-                    className="form-control"
                     placeholder="Search courses by code, title, or description..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
                   />
                 </div>
               </div>
 
               {/* Subject Filter */}
-              <div className="col-md-3">
-                <select
-                  className="form-select"
-                  value={subjectFilter}
-                  onChange={(e) => setSubjectFilter(e.target.value)}
-                >
-                  <option value="all">All Subjects</option>
-                  {subjects.map((subject) => (
-                    <option key={subject} value={subject}>
-                      {subject}
-                    </option>
-                  ))}
-                </select>
+              <div className="md:col-span-3">
+                <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Subjects" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Subjects</SelectItem>
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject} value={subject}>
+                        {subject}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Level Filter */}
-              <div className="col-md-2">
-                <select
-                  className="form-select"
-                  value={levelFilter}
-                  onChange={(e) => setLevelFilter(e.target.value)}
-                >
-                  <option value="all">All Levels</option>
-                  {levels.map((level) => (
-                    <option key={level} value={level}>
-                      {level}
-                    </option>
-                  ))}
-                </select>
+              <div className="md:col-span-2">
+                <Select value={levelFilter} onValueChange={setLevelFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Levels" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Levels</SelectItem>
+                    {levels.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {level}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Clear Filters */}
               {hasActiveFilters && (
-                <div className="col-md-2">
-                  <button
-                    className="btn btn-outline-danger w-100"
+                <div className="md:col-span-2">
+                  <Button
+                    variant="outline"
+                    className="w-full"
                     onClick={() => {
                       setSearchTerm('')
                       setSubjectFilter('all')
@@ -403,45 +415,42 @@ export default function AvailableCoursesPage() {
                     }}
                   >
                     Clear Filters
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
 
             {/* Filter Stats */}
             {hasActiveFilters && (
-              <div className="mt-3">
-                <small className="text-muted">
+              <div className="mt-4">
+                <span className="text-sm text-muted-foreground">
                   Showing {filteredCourses.length} of {courses.length} courses
-                </small>
+                </span>
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Loading State */}
       {loading ? (
-        <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading courses...</span>
-          </div>
-          <p className="text-muted mt-3">Loading courses...</p>
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-accent-orange mb-4" />
+          <p className="text-muted-foreground">Loading courses...</p>
         </div>
       ) : filteredCourses.length === 0 ? (
         /* Empty State */
-        <div className="card border-0 shadow-sm">
-          <div className="card-body text-center py-5">
-            <Filter size={64} className="text-muted mb-3" />
-            <h3 className="h5 text-muted">No courses found</h3>
-            <p className="text-muted mb-3">
+        <Card>
+          <CardContent className="text-center py-12">
+            <Filter size={64} className="text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">No courses found</h3>
+            <p className="text-muted-foreground mb-6">
               {hasActiveFilters
                 ? 'Try adjusting your filters or search term.'
                 : 'There are no courses in the catalog at this time.'}
             </p>
             {hasActiveFilters && (
-              <button
-                className="btn btn-primary"
+              <Button
                 onClick={() => {
                   setSearchTerm('')
                   setSubjectFilter('all')
@@ -449,83 +458,82 @@ export default function AvailableCoursesPage() {
                 }}
               >
                 Clear All Filters
-              </button>
+              </Button>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       ) : (
         /* Course Cards Grid */
         <>
-          <div className="row g-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
             {filteredCourses.map((course) => (
-              <div key={course.id} className="col-md-6 col-lg-4">
-                <div className="card h-100 shadow-sm border-0 hover-shadow" style={{ borderLeft: '4px solid #0d6efd' }}>
-                  <div className="card-body d-flex flex-column">
-                    {/* Course Code Badge */}
-                    <div className="mb-3">
-                      <span className="badge bg-primary fs-6">{course.code}</span>
-                      {course.level && (
-                        <span className="badge bg-info ms-2">{course.level}</span>
-                      )}
-                    </div>
-
-                    {/* Course Title */}
-                    <h5 className="card-title fw-bold mb-2">{course.title}</h5>
-
-                    {/* Course Subject */}
-                    {course.subject && (
-                      <p className="text-muted small mb-2">
-                        <i className="bi bi-tag-fill me-1"></i>
-                        {course.subject}
-                      </p>
+              <Card key={course.id} className="flex flex-col border-l-4 border-l-accent-purple">
+                <CardHeader>
+                  {/* Course Code Badge */}
+                  <div className="flex gap-2 mb-3">
+                    <Badge variant="purple" className="text-base">{course.code}</Badge>
+                    {course.level && (
+                      <Badge variant="info">{course.level}</Badge>
                     )}
-
-                    {/* Course Description */}
-                    <p className="card-text text-muted small mb-4 flex-grow-1">
-                      {course.description || 'No description available.'}
-                    </p>
-
-                    {/* Adopt Button */}
-                    <button
-                      className="btn btn-primary w-100"
-                      onClick={() => setSelectedCourse(course)}
-                    >
-                      <i className="bi bi-plus-circle me-2"></i>
-                      Adopt Course
-                    </button>
                   </div>
-                </div>
-              </div>
+
+                  {/* Course Title */}
+                  <CardTitle className="mb-2">{course.title}</CardTitle>
+
+                  {/* Course Subject */}
+                  {course.subject && (
+                    <CardDescription className="flex items-center gap-1">
+                      {course.subject}
+                    </CardDescription>
+                  )}
+                </CardHeader>
+
+                <CardContent className="flex-1 flex flex-col">
+                  {/* Course Description */}
+                  <p className="text-sm text-muted-foreground mb-4 flex-1">
+                    {course.description || 'No description available.'}
+                  </p>
+
+                  {/* Adopt Button */}
+                  <Button
+                    type="button"
+                    className="w-full"
+                    onClick={() => setSelectedCourse(course)}
+                  >
+                    Adopt Course
+                  </Button>
+                </CardContent>
+              </Card>
             ))}
           </div>
 
           {/* Course Statistics */}
-          <div className="card border-0 bg-light">
-            <div className="card-body text-center py-3">
-              <div className="row">
-                <div className="col-md-4">
-                  <div className="h4 fw-bold text-primary mb-1">{courses.length}</div>
-                  <div className="text-muted small">Total Courses</div>
+          <Card className="bg-muted/50">
+            <CardContent className="text-center py-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <div className="text-4xl font-bold text-accent-purple mb-1">{courses.length}</div>
+                  <div className="text-sm text-muted-foreground">Total Courses</div>
                 </div>
-                <div className="col-md-4">
-                  <div className="h4 fw-bold text-success mb-1">{subjects.length}</div>
-                  <div className="text-muted small">Subjects</div>
+                <div>
+                  <div className="text-4xl font-bold text-success mb-1">{subjects.length}</div>
+                  <div className="text-sm text-muted-foreground">Subjects</div>
                 </div>
-                <div className="col-md-4">
-                  <div className="h4 fw-bold text-info mb-1">{myClasses.length}</div>
-                  <div className="text-muted small">My Classes</div>
+                <div>
+                  <div className="text-4xl font-bold text-info mb-1">{myClasses.length}</div>
+                  <div className="text-sm text-muted-foreground">My Classes</div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </>
       )}
 
       {/* Class Creation Modal */}
-      {selectedCourse && professorSchoolId && (
+      {selectedCourse && (
         <CreateClassModal
           course={selectedCourse}
-          professorSchoolId={professorSchoolId}
+          professorSchoolId={professorSchoolId || ''}
           existingClasses={myClasses}
           onClose={() => setSelectedCourse(null)}
           onSuccess={handleClassCreated}

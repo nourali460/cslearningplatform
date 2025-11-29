@@ -55,10 +55,32 @@ export async function GET(
       },
     })
 
-    // Get all assessments for this class
+    // Get all assessments for this class with module information
     const assessments = await db.assessment.findMany({
       where: {
         classId: classId,
+      },
+      include: {
+        moduleItems: {
+          where: {
+            module: {
+              classId: classId,
+              isPublished: true,
+            },
+            isPublished: true,
+          },
+          select: {
+            id: true,
+            module: {
+              select: {
+                id: true,
+                title: true,
+                orderIndex: true,
+              },
+            },
+          },
+          take: 1, // Each assessment should only be in one module
+        },
       },
       orderBy: [
         { type: 'asc' },
@@ -149,9 +171,19 @@ export async function GET(
       }
     })
 
+    // Transform assessments to include module information
+    const assessmentsWithModules = assessments.map((assessment) => ({
+      id: assessment.id,
+      title: assessment.title,
+      type: assessment.type,
+      maxPoints: assessment.maxPoints,
+      dueAt: assessment.dueAt,
+      module: assessment.moduleItems[0]?.module || null,
+    }))
+
     return NextResponse.json({
       students,
-      assessments,
+      assessments: assessmentsWithModules,
     })
   } catch (error) {
     console.error('Error fetching gradebook:', error)

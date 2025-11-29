@@ -1,6 +1,7 @@
-// ---------------------------------------------------------
-// Prisma schema for core learning platform
-// ---------------------------------------------------------
+// ═════════════════════════════════════════════════════════════════════════════
+// PRISMA SCHEMA FOR CS LEARNING PLATFORM
+// With Modules + Discussions + Template System
+// ═════════════════════════════════════════════════════════════════════════════
 
 generator client {
   provider = "prisma-client-js"
@@ -11,99 +12,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------------------------------------------------------
-// USERS  (Simple auth with plain-text passwords)
-// ---------------------------------------------------------
-
-model User {
-  id               String   @id @default(uuid()) @db.Uuid
-  email            String   @unique
-  password         String                        // Plain-text password
-  role             String                        // 'professor' | 'student' | 'admin'
-  fullName         String?
-  usernameSchoolId String?  @unique             // School ID (0-1000000) for students/professors, used in class codes
-  isApproved       Boolean  @default(true)      // Professors need approval
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  // Relations
-  professorClasses Class[]                  @relation("ProfessorClasses")
-  enrollments      Enrollment[]             @relation("StudentEnrollments")
-  submissions      AssessmentSubmission[]   @relation("SubmissionStudent")
-
-  @@map("users")
-}
-
-// ---------------------------------------------------------
-// COURSES  (Global course catalog)
-// ---------------------------------------------------------
-
-model Course {
-  id          String   @id @default(uuid()) @db.Uuid
-  code        String   @unique             // e.g. 'CS101'
-  title       String                      // e.g. 'Intro to Java'
-  description String?
-  subject     String?
-  level       String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  // Relations
-  classes     Class[]
-
-  @@map("courses")
-}
-
-// ---------------------------------------------------------
-// CLASSES  (A professor teaching a course in a term)
-// ---------------------------------------------------------
-
-model Class {
-  id           String   @id @default(uuid()) @db.Uuid
-  courseId     String   @db.Uuid
-  professorId  String   @db.Uuid
-  title        String                       // e.g. 'CS101 Section 01'
-  term         String                       // e.g. 'Fall'
-  year         Int                          // e.g. 2025
-  section      String?
-  classCode    String   @unique             // e.g. 'ALI-CS101-FA25-01'
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Relations
-  course       Course                 @relation(fields: [courseId],    references: [id])
-  professor    User                   @relation("ProfessorClasses", fields: [professorId], references: [id])
-  enrollments  Enrollment[]
-  assessments  Assessment[]
-  rubrics      Rubric[]
-  submissions  AssessmentSubmission[]
-
-  @@map("classes")
-}
-
-// ---------------------------------------------------------
-// ENROLLMENTS  (Students joining a class)
-// ---------------------------------------------------------
-
-model Enrollment {
-  id         String   @id @default(uuid()) @db.Uuid
-  classId    String   @db.Uuid
-  studentId  String   @db.Uuid
-  status     String   @default("active")
-  createdAt  DateTime @default(now())
-
-  // Relations
-  class      Class @relation(fields: [classId],   references: [id])
-  student    User  @relation("StudentEnrollments", fields: [studentId], references: [id])
-
-  @@unique([classId, studentId])
-  @@map("enrollments")
-}
-
-// ---------------------------------------------------------
+// ═════════════════════════════════════════════════════════════════════════════
 // ENUMS
-// ---------------------------------------------------------
+// ═════════════════════════════════════════════════════════════════════════════
 
 enum AssessmentType {
   INTERACTIVE_LESSON
@@ -128,16 +39,131 @@ enum SubmissionStatus {
   LATE         // Submitted after due date
 }
 
-// ---------------------------------------------------------
-// ASSESSMENTS  (Labs / assignments / exams)
-// ---------------------------------------------------------
+enum ModuleItemType {
+  PAGE            // Content page (overview, instructions, etc.)
+  ASSESSMENT      // Links to an Assessment (lab, quiz, discussion, etc.)
+  EXTERNAL_LINK   // External resource (Revel, YouTube, etc.)
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// USERS & AUTHENTICATION
+// ═════════════════════════════════════════════════════════════════════════════
+
+model User {
+  id               String   @id @default(uuid()) @db.Uuid
+  email            String   @unique
+  password         String                        // Plain-text password (TODO: hash with bcrypt)
+  role             String                        // 'professor' | 'student' | 'admin'
+  fullName         String?
+  usernameSchoolId String?  @unique             // School ID (0-1000000) for students/professors
+  isApproved       Boolean  @default(true)      // Professors need approval
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  professorClasses      Class[]                  @relation("ProfessorClasses")
+  enrollments           Enrollment[]             @relation("StudentEnrollments")
+  submissions           AssessmentSubmission[]   @relation("SubmissionStudent")
+  discussionPosts       DiscussionPost[]
+  discussionReplies     DiscussionReply[]
+  moduleCompletions     ModuleCompletion[]
+  moduleItemCompletions ModuleItemCompletion[]
+  fileUploads           FileUpload[]
+
+  @@map("users")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// COURSES & CLASSES
+// ═════════════════════════════════════════════════════════════════════════════
+
+model Course {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique             // e.g. 'CS101'
+  title       String                      // e.g. 'Intro to Java'
+  description String?
+  subject     String?
+  level       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  classes             Class[]
+  assessmentTemplates AssessmentTemplate[]
+  moduleTemplates     ModuleTemplate[]
+
+  @@map("courses")
+}
+
+model Class {
+  id           String   @id @default(uuid()) @db.Uuid
+  courseId     String   @db.Uuid
+  professorId  String   @db.Uuid
+  title        String                       // e.g. 'CS101 Section 01'
+  term         String                       // e.g. 'Fall'
+  year         Int                          // e.g. 2025
+  section      String?
+  classCode    String   @unique             // e.g. 'ALI-CS101-FA25-01'
+  isActive     Boolean  @default(true)
+
+  // Template tracking (NEW)
+  clonedFromCourseId String?   @db.Uuid   // Which course templates were cloned from
+  clonedAt           DateTime?             // When templates were initially cloned
+  lastSyncedAt       DateTime?             // Last time course templates were synced
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  course                     Course                      @relation(fields: [courseId], references: [id])
+  professor                  User                        @relation("ProfessorClasses", fields: [professorId], references: [id])
+  enrollments                Enrollment[]
+  assessments                Assessment[]
+  rubrics                    Rubric[]
+  submissions                AssessmentSubmission[]
+  modules                    Module[]                    // NEW: Canvas-style modules
+  discussionPosts            DiscussionPost[]
+  discussionReplies          DiscussionReply[]
+  assessmentTemplateMappings AssessmentTemplateMapping[] // NEW: Track template clones
+  moduleTemplateMappings     ModuleTemplateMapping[]     // NEW: Track module template clones
+  moduleCompletions          ModuleCompletion[]
+  moduleItemCompletions      ModuleItemCompletion[]
+
+  @@map("classes")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ENROLLMENTS
+// ═════════════════════════════════════════════════════════════════════════════
+
+model Enrollment {
+  id         String   @id @default(uuid()) @db.Uuid
+  classId    String   @db.Uuid
+  studentId  String   @db.Uuid
+  status     String   @default("active")  // 'active' | 'dropped' | 'completed'
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student User  @relation("StudentEnrollments", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, studentId])
+  @@index([studentId])
+  @@map("enrollments")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ASSESSMENTS (Labs, Quizzes, Exams, Discussions)
+// ═════════════════════════════════════════════════════════════════════════════
 
 model Assessment {
   id                    String         @id @default(uuid()) @db.Uuid
   classId               String         @db.Uuid
   title                 String
   slug                  String
-  description           String?
+  description           String?        // For DISCUSSION type: sanitized HTML prompt from RichTextEditor; for others: plain text description
   dueAt                 DateTime?
   maxPoints             Decimal        @default("100.00") @db.Decimal(5, 2)
   orderIndex            Int?
@@ -145,53 +171,81 @@ model Assessment {
   submissionType        SubmissionType @default(BOTH)
   allowMultipleAttempts Boolean        @default(false)
   maxAttempts           Int            @default(1)
+  isPublished           Boolean        @default(true)
   createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // DISCUSSION-SPECIFIC CONFIG (Used when type = DISCUSSION)
+  // ────────────────────────────────────────────────────────────────────────────
+  allowPeerReplies           Boolean? @default(true)   // Can students reply to each other?
+  minimumReplyCount          Int?     @default(1)      // Required replies for completion
+  autoCompleteEnabled        Boolean? @default(false)  // Auto-award points when requirements met?
+  lockedAfterDue             Boolean? @default(false)  // Lock discussion after due date?
+  requirePostBeforeViewing   Boolean? @default(false)  // Must post before seeing others' posts?
+  allowAnonymous             Boolean? @default(false)  // Allow anonymous posting?
+  isPinned                   Boolean? @default(false)  // Pin to top of assessments list?
 
   // Relations
-  class       Class                  @relation(fields: [classId], references: [id])
-  submissions AssessmentSubmission[]
-  rubric      Rubric?                @relation(fields: [rubricId], references: [id])
-  rubricId    String?                @db.Uuid
+  class                      Class                       @relation(fields: [classId], references: [id], onDelete: Cascade)
+  submissions                AssessmentSubmission[]
+  rubric                     Rubric?                     @relation(fields: [rubricId], references: [id])
+  rubricId                   String?                     @db.Uuid
+  moduleItems                ModuleItem[]                @relation("AssessmentModuleItems")
+  discussionPosts            DiscussionPost[]
+  discussionReplies          DiscussionReply[]
+  assessmentTemplateMappings AssessmentTemplateMapping[] // Track which template this came from
 
+  @@index([classId, type])
+  @@index([classId, dueAt])
   @@map("assessments")
 }
 
-// ---------------------------------------------------------
-// ASSESSMENT SUBMISSIONS  (Grades + attempts + feedback)
-// ---------------------------------------------------------
+// ═════════════════════════════════════════════════════════════════════════════
+// ASSESSMENT SUBMISSIONS (Grades + Feedback)
+// ═════════════════════════════════════════════════════════════════════════════
 
 model AssessmentSubmission {
   id              String           @id @default(uuid()) @db.Uuid
   assessmentId    String           @db.Uuid
   studentId       String           @db.Uuid
-  classId         String?          @db.Uuid  // Direct class association for easier filtering (optional for migration)
+  classId         String?          @db.Uuid
   submittedAt     DateTime         @default(now())
-  submissionText  String?          // Text content or URLs (GitHub, Google Docs, etc.)
-  submissionFiles Json?            // Array of file metadata: [{filename, size, url, uploadedAt}]
+  submissionText  String?          // Text content or URLs
+  submissionFiles Json?            // [{filename, size, url, uploadedAt}]
   autoScore       Decimal?         @db.Decimal(5, 2)
   manualScore     Decimal?         @db.Decimal(5, 2)
   totalScore      Decimal?         @db.Decimal(5, 2)
-  feedback        String?          // Professor's text feedback
-  feedbackFiles   Json?            // Array of feedback file attachments
+  feedback        String?
+  feedbackFiles   Json?
   status          SubmissionStatus @default(DRAFT)
   isLate          Boolean          @default(false)
   attemptNumber   Int              @default(1)
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // DISCUSSION-SPECIFIC TRACKING (NEW)
+  // ────────────────────────────────────────────────────────────────────────────
+  discussionPostId     String?  @db.Uuid   // Link to student's main post
+  discussionReplyCount Int      @default(0) // Cache of how many replies they made
+
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
   // Relations
-  assessment      Assessment @relation(fields: [assessmentId], references: [id])
-  student         User       @relation("SubmissionStudent", fields: [studentId], references: [id])
-  class           Class?     @relation(fields: [classId], references: [id])
+  assessment     Assessment      @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student        User            @relation("SubmissionStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  class          Class?          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  discussionPost DiscussionPost? @relation(fields: [discussionPostId], references: [id], onDelete: SetNull)
 
   @@unique([assessmentId, studentId])
   @@index([classId, studentId])
+  @@index([status])
   @@map("assessment_submissions")
 }
 
-// ---------------------------------------------------------
-// RUBRICS  (Grading rubrics with criteria)
-// ---------------------------------------------------------
+// ═════════════════════════════════════════════════════════════════════════════
+// RUBRICS
+// ═════════════════════════════════════════════════════════════════════════════
 
 model Rubric {
   id          String   @id @default(uuid()) @db.Uuid
@@ -202,7 +256,7 @@ model Rubric {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  class       Class             @relation(fields: [classId], references: [id])
+  class       Class             @relation(fields: [classId], references: [id], onDelete: Cascade)
   criteria    RubricCriterion[]
   assessments Assessment[]
 
@@ -221,4 +275,343 @@ model RubricCriterion {
   rubric Rubric @relation(fields: [rubricId], references: [id], onDelete: Cascade)
 
   @@map("rubric_criteria")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ASSESSMENT TEMPLATES (Course-level reusable templates)
+// ═════════════════════════════════════════════════════════════════════════════
+
+model AssessmentTemplate {
+  id                    String         @id @default(uuid()) @db.Uuid
+  courseId              String         @db.Uuid
+  title                 String
+  description           String?        // For DISCUSSION type: sanitized HTML prompt from RichTextEditor; for others: plain text description
+  type                  AssessmentType @default(LAB)
+  defaultMaxPoints      Decimal        @default("100.00") @db.Decimal(5, 2)
+  defaultSubmissionType SubmissionType @default(BOTH)
+  orderIndex            Int            @default(0)
+  isActive              Boolean        @default(true)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // DISCUSSION TEMPLATE CONFIG (Used when type = DISCUSSION)
+  // ────────────────────────────────────────────────────────────────────────────
+  defaultAllowPeerReplies         Boolean? @default(true)
+  defaultMinimumReplyCount        Int?     @default(1)
+  defaultAutoCompleteEnabled      Boolean? @default(false)
+  defaultLockedAfterDue           Boolean? @default(false)
+  defaultRequirePostBeforeViewing Boolean? @default(false)
+  defaultAllowAnonymous           Boolean? @default(false)
+
+  // Relations
+  course                     Course                      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  moduleItemTemplates        ModuleItemTemplate[]        @relation("TemplateModuleItems")
+  assessmentTemplateMappings AssessmentTemplateMapping[] // Track which assessments were cloned from this
+
+  @@index([courseId, isActive])
+  @@index([courseId, orderIndex])
+  @@map("assessment_templates")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ASSESSMENT TEMPLATE MAPPINGS (Track template → assessment clones)
+// ═════════════════════════════════════════════════════════════════════════════
+
+model AssessmentTemplateMapping {
+  id                   String   @id @default(uuid()) @db.Uuid
+  classId              String   @db.Uuid
+  assessmentId         String   @db.Uuid
+  assessmentTemplateId String   @db.Uuid
+  createdAt            DateTime @default(now())
+
+  // Relations
+  class              Class              @relation(fields: [classId], references: [id], onDelete: Cascade)
+  assessment         Assessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  assessmentTemplate AssessmentTemplate @relation(fields: [assessmentTemplateId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, assessmentTemplateId])
+  @@unique([assessmentId]) // Each assessment can only come from one template
+  @@index([classId])
+  @@map("assessment_template_mappings")
+}
+
+model ModuleTemplateMapping {
+  id               String   @id @default(uuid()) @db.Uuid
+  classId          String   @db.Uuid
+  moduleId         String   @db.Uuid
+  moduleTemplateId String   @db.Uuid
+  createdAt        DateTime @default(now())
+
+  // Relations
+  class          Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  module         Module         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleTemplate ModuleTemplate @relation(fields: [moduleTemplateId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, moduleTemplateId])
+  @@unique([moduleId]) // Each module can only come from one template
+  @@index([classId])
+  @@map("module_template_mappings")
+}
+
+model ModuleItemTemplateMapping {
+  id                   String   @id @default(uuid()) @db.Uuid
+  moduleId             String   @db.Uuid
+  moduleItemId         String   @db.Uuid
+  moduleItemTemplateId String   @db.Uuid
+  createdAt            DateTime @default(now())
+
+  // Relations
+  module             Module             @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleItem         ModuleItem         @relation(fields: [moduleItemId], references: [id], onDelete: Cascade)
+  moduleItemTemplate ModuleItemTemplate @relation(fields: [moduleItemTemplateId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleId, moduleItemTemplateId])
+  @@unique([moduleItemId]) // Each module item can only come from one template
+  @@index([moduleId])
+  @@map("module_item_template_mappings")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MODULES (Class-level, Canvas-style containers)
+// ═════════════════════════════════════════════════════════════════════════════
+
+model Module {
+  id          String   @id @default(uuid()) @db.Uuid
+  classId     String   @db.Uuid
+  title       String                  // e.g. "Week 1: Introduction"
+  description String?
+  orderIndex  Int      @default(0)
+  isPublished Boolean  @default(true)
+
+  // Advanced features (NEW)
+  unlockAt        DateTime? // When this module becomes available
+  prerequisiteIds String[]  // Array of module IDs that must be completed first
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  class                      Class                        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  items                      ModuleItem[]
+  moduleCompletions          ModuleCompletion[]
+  moduleTemplateMappings     ModuleTemplateMapping[]      // Track which template this came from
+  moduleItemTemplateMappings ModuleItemTemplateMapping[]  // Track item template mappings
+
+  @@index([classId, orderIndex])
+  @@index([classId, isPublished])
+  @@map("modules")
+}
+
+model ModuleItem {
+  id             String         @id @default(uuid()) @db.Uuid
+  moduleId       String         @db.Uuid
+  itemType       ModuleItemType
+  title          String
+
+  // Conditional fields based on itemType
+  assessmentId       String?        @db.Uuid   // when itemType = ASSESSMENT
+  externalUrl        String?                   // when itemType = EXTERNAL_LINK
+  pageContent        String?                   // when itemType = PAGE (markdown or HTML)
+  customDescription  String?                   // Custom description override (for ASSESSMENT)
+
+  orderIndex     Int           @default(0)
+  isPublished    Boolean       @default(true)
+  isRequired     Boolean       @default(true)  // NEW: Required for module completion?
+  availableFrom  DateTime?                     // When this item becomes available
+  availableUntil DateTime?                     // When this item expires
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  module                     Module                        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  assessment                 Assessment?                   @relation("AssessmentModuleItems", fields: [assessmentId], references: [id], onDelete: SetNull)
+  moduleItemCompletions      ModuleItemCompletion[]
+  moduleItemTemplateMappings ModuleItemTemplateMapping[]   // Track which template this came from
+
+  @@index([moduleId, orderIndex])
+  @@index([moduleId, isPublished])
+  @@map("module_items")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MODULE TEMPLATES (Course-level default structures)
+// ═════════════════════════════════════════════════════════════════════════════
+
+model ModuleTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  courseId    String   @db.Uuid
+  title       String                  // e.g. "Week 1: Introduction"
+  description String?
+  orderIndex  Int      @default(0)
+  isActive    Boolean  @default(true)
+
+  // Advanced features (NEW)
+  defaultUnlockAt        DateTime? // Default unlock time when cloned
+  defaultPrerequisiteIds String[]  // Template IDs of prerequisite modules
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  course             Course                  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  items              ModuleItemTemplate[]
+  moduleMappings     ModuleTemplateMapping[] // Track which modules were cloned from this
+
+  @@index([courseId, orderIndex])
+  @@index([courseId, isActive])
+  @@map("module_templates")
+}
+
+model ModuleItemTemplate {
+  id                   String         @id @default(uuid()) @db.Uuid
+  moduleTemplateId     String         @db.Uuid
+  itemType             ModuleItemType
+  title                String
+
+  // Conditional fields based on itemType
+  assessmentTemplateId String?        @db.Uuid   // when itemType = ASSESSMENT
+  externalUrl          String?                   // when itemType = EXTERNAL_LINK
+  pageContent          String?                   // when itemType = PAGE
+  customDescription    String?                   // Custom description override (for ASSESSMENT)
+
+  orderIndex           Int           @default(0)
+  isPublished          Boolean       @default(true)
+  isRequired           Boolean       @default(true)  // NEW
+
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  // Relations
+  moduleTemplate     ModuleTemplate                @relation(fields: [moduleTemplateId], references: [id], onDelete: Cascade)
+  assessmentTemplate AssessmentTemplate?           @relation("TemplateModuleItems", fields: [assessmentTemplateId], references: [id], onDelete: SetNull)
+  moduleItemMappings ModuleItemTemplateMapping[]   // Track which module items were cloned from this
+
+  @@index([moduleTemplateId, orderIndex])
+  @@map("module_item_templates")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// DISCUSSIONS (Posts + Replies)
+// ═════════════════════════════════════════════════════════════════════════════
+
+model DiscussionPost {
+  id           String   @id @default(uuid()) @db.Uuid
+  assessmentId String   @db.Uuid
+  classId      String   @db.Uuid
+  studentId    String   @db.Uuid
+  content      String                   // Sanitized HTML content from RichTextEditor (students create posts)
+  attachments  Json?                    // NEW: File attachments [{filename, url, size}]
+  isEdited     Boolean  @default(false)
+  isPinned     Boolean  @default(false) // NEW: Professor can pin exemplary posts
+  likeCount    Int      @default(0)     // NEW: Optional upvoting
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  assessment  Assessment             @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  class       Class                  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student     User                   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  replies     DiscussionReply[]
+  submissions AssessmentSubmission[] // Reverse relation for discussionPostId
+
+  @@unique([assessmentId, studentId]) // One main post per student per discussion
+  @@index([classId, assessmentId])
+  @@index([assessmentId, isPinned])
+  @@map("discussion_posts")
+}
+
+model DiscussionReply {
+  id            String   @id @default(uuid()) @db.Uuid
+  assessmentId  String   @db.Uuid
+  classId       String   @db.Uuid
+  authorId      String   @db.Uuid       // Can be student or professor
+  postId        String   @db.Uuid
+  parentReplyId String?  @db.Uuid       // For threaded replies
+  content       String                  // Sanitized HTML content from RichTextEditor (students/professors reply to posts)
+  attachments   Json?                   // NEW: File attachments
+  isEdited      Boolean  @default(false)
+  likeCount     Int      @default(0)    // NEW: Optional upvoting
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  assessment   Assessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  class        Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  author       User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post         DiscussionPost   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentReply  DiscussionReply? @relation("ReplyThread", fields: [parentReplyId], references: [id], onDelete: Cascade)
+  childReplies DiscussionReply[] @relation("ReplyThread")
+
+  @@index([assessmentId, classId])
+  @@index([postId])
+  @@index([authorId])
+  @@map("discussion_replies")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PROGRESS TRACKING (Module & Item Completion)
+// ═════════════════════════════════════════════════════════════════════════════
+
+model ModuleCompletion {
+  id          String    @id @default(uuid()) @db.Uuid
+  moduleId    String    @db.Uuid
+  studentId   String    @db.Uuid
+  classId     String    @db.Uuid
+  completedAt DateTime?              // Null = in progress, not null = completed
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  module  Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleId, studentId])
+  @@index([classId, studentId])
+  @@index([studentId, completedAt])
+  @@map("module_completions")
+}
+
+model ModuleItemCompletion {
+  id           String    @id @default(uuid()) @db.Uuid
+  moduleItemId String    @db.Uuid
+  studentId    String    @db.Uuid
+  classId      String    @db.Uuid
+  completedAt  DateTime?              // Null = not viewed/completed, not null = completed
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  moduleItem ModuleItem @relation(fields: [moduleItemId], references: [id], onDelete: Cascade)
+  student    User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class      Class      @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleItemId, studentId])
+  @@index([classId, studentId])
+  @@index([studentId, completedAt])
+  @@map("module_item_completions")
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// FILE UPLOADS (Images & Attachments with GCS)
+// ═════════════════════════════════════════════════════════════════════════════
+
+model FileUpload {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid           // Who uploaded the file
+  fileName   String                      // Original filename
+  fileSize   BigInt                      // Size in bytes
+  mimeType   String                      // MIME type (image/jpeg, application/pdf, etc.)
+  gcsPath    String                      // Full path in GCS bucket
+  publicUrl  String                      // Public URL to access the file
+  uploadedAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, uploadedAt])
+  @@map("file_uploads")
 }

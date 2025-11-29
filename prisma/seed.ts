@@ -1,13 +1,15 @@
-// Seed script for database initialization
+// Seed script for database initialization with proper template workflow
 import { PrismaClient } from '@prisma/client'
+import { createAssessmentsFromTemplates } from '../lib/assessment-templates'
+import { createModulesFromTemplates } from '../lib/module-templates'
 
 // Create Prisma client
 const prisma = new PrismaClient()
 
 // Primary admin user configuration
 const PRIMARY_ADMIN = {
-  clerkId: 'user_35rVge67RtsAqrA0Vl4JC6F9dOW',
-  email: 'subscriptionnova@gmail.com',
+  email: 'subscriptionsnova@gmail.com',
+  password: 'admin123', // Plain-text password
   fullName: 'Nour Ali',
   role: 'admin',
 }
@@ -15,7 +17,7 @@ const PRIMARY_ADMIN = {
 async function ensurePrimaryAdmin() {
   // Check if primary admin exists
   const existingAdmin = await prisma.user.findUnique({
-    where: { clerkId: PRIMARY_ADMIN.clerkId },
+    where: { email: PRIMARY_ADMIN.email },
   })
 
   if (existingAdmin) {
@@ -32,47 +34,46 @@ async function ensurePrimaryAdmin() {
 }
 
 async function main() {
-  console.log('🌱 Starting database initialization...')
+  console.log('🌱 Starting database initialization with proper template workflow...')
 
   try {
     // Step 1: Ensure primary admin always exists
     console.log('\n📋 Checking primary admin user...')
     await ensurePrimaryAdmin()
 
-    // Step 2: Clean and seed test data (optional)
+    // Step 2: Clean test data (preserve primary admin)
     console.log('\n🧹 Cleaning test data...')
-
-    // Delete test data but preserve the primary admin
+    await prisma.moduleItemTemplateMapping.deleteMany()
+    await prisma.moduleTemplateMapping.deleteMany()
+    await prisma.assessmentTemplateMapping.deleteMany()
+    await prisma.moduleItemCompletion.deleteMany()
+    await prisma.moduleCompletion.deleteMany()
+    await prisma.discussionReply.deleteMany()
+    await prisma.discussionPost.deleteMany()
     await prisma.assessmentSubmission.deleteMany()
+    await prisma.moduleItem.deleteMany()
+    await prisma.module.deleteMany()
     await prisma.assessment.deleteMany()
     await prisma.enrollment.deleteMany()
     await prisma.class.deleteMany()
+    await prisma.moduleItemTemplate.deleteMany()
+    await prisma.moduleTemplate.deleteMany()
+    await prisma.assessmentTemplate.deleteMany()
     await prisma.course.deleteMany()
-
-    // Delete only non-primary admin users
     await prisma.user.deleteMany({
-      where: {
-        clerkId: {
-          not: PRIMARY_ADMIN.clerkId,
-        },
-      },
+      where: { email: { not: PRIMARY_ADMIN.email } },
     })
-
     console.log('✅ Cleaned test data (preserved primary admin)')
 
-    // NOTE: Test users removed to prevent conflicts with real signups
-    // Real users will sign up via Clerk and be created by webhook
-    console.log('\n✅ Skipping test user creation (use real signups instead)')
-
-    // Step 4: Create courses
+    // Step 3: Create courses
     console.log('\n📚 Creating courses...')
     const courses = await Promise.all([
-      // Introductory Level (100s)
       prisma.course.create({
         data: {
           code: 'CS101',
           title: 'Introduction to Java Programming',
-          description: 'Learn the fundamentals of Java programming including OOP concepts, data structures, and algorithms.',
+          description:
+            'Learn the fundamentals of Java programming including OOP concepts, data structures, and algorithms.',
           subject: 'Computer Science',
           level: 'Introductory',
           isActive: true,
@@ -90,28 +91,6 @@ async function main() {
       }),
       prisma.course.create({
         data: {
-          code: 'CS103',
-          title: 'Computer Organization',
-          description: 'Study computer architecture, assembly language, and system-level programming.',
-          subject: 'Computer Science',
-          level: 'Introductory',
-          isActive: true,
-        },
-      }),
-      prisma.course.create({
-        data: {
-          code: 'CS104',
-          title: 'Discrete Mathematics for Computer Science',
-          description: 'Essential mathematical foundations including logic, sets, functions, and graph theory.',
-          subject: 'Computer Science',
-          level: 'Introductory',
-          isActive: true,
-        },
-      }),
-
-      // Intermediate Level (200s)
-      prisma.course.create({
-        data: {
           code: 'CS201',
           title: 'Data Structures and Algorithms',
           description: 'Advanced study of data structures, algorithms, and their applications.',
@@ -120,179 +99,397 @@ async function main() {
           isActive: true,
         },
       }),
-      prisma.course.create({
-        data: {
-          code: 'CS202',
-          title: 'Database Systems',
-          description: 'Learn relational database design, SQL, transactions, and database management.',
-          subject: 'Computer Science',
-          level: 'Intermediate',
-          isActive: true,
-        },
-      }),
-      prisma.course.create({
-        data: {
-          code: 'CS203',
-          title: 'Operating Systems',
-          description: 'Study OS concepts including processes, threads, memory management, and file systems.',
-          subject: 'Computer Science',
-          level: 'Intermediate',
-          isActive: true,
-        },
-      }),
-      prisma.course.create({
-        data: {
-          code: 'CS204',
-          title: 'Computer Networks',
-          description: 'Explore network protocols, architecture, and distributed systems fundamentals.',
-          subject: 'Computer Science',
-          level: 'Intermediate',
-          isActive: true,
-        },
-      }),
-      prisma.course.create({
-        data: {
-          code: 'CS205',
-          title: 'Software Engineering',
-          description: 'Software development lifecycle, design patterns, testing, and project management.',
-          subject: 'Computer Science',
-          level: 'Intermediate',
-          isActive: true,
-        },
-      }),
-      prisma.course.create({
-        data: {
-          code: 'CS206',
-          title: 'Advanced Web Development',
-          description: 'Modern web frameworks, RESTful APIs, authentication, and cloud deployment.',
-          subject: 'Computer Science',
-          level: 'Intermediate',
-          isActive: true,
-        },
-      }),
+    ])
+    console.log(`✅ Created ${courses.length} courses`)
 
-      // Advanced Level (300s)
-      prisma.course.create({
+    // Step 4: Create assessment templates
+    console.log('\n📝 Creating assessment templates...')
+    const assessmentTemplates = await Promise.all([
+      // CS101 Templates
+      prisma.assessmentTemplate.create({
         data: {
-          code: 'CS301',
-          title: 'Artificial Intelligence',
-          description: 'AI fundamentals including search algorithms, knowledge representation, and reasoning.',
-          subject: 'Computer Science',
-          level: 'Advanced',
+          courseId: courses[0].id,
+          title: 'Weekly Lab Assignment',
+          description: 'Standard weekly programming lab',
+          type: 'LAB',
+          defaultMaxPoints: 15,
+          defaultSubmissionType: 'BOTH',
+          orderIndex: 1,
           isActive: true,
         },
       }),
-      prisma.course.create({
+      prisma.assessmentTemplate.create({
         data: {
-          code: 'CS302',
-          title: 'Machine Learning',
-          description: 'Supervised and unsupervised learning, neural networks, and deep learning foundations.',
-          subject: 'Computer Science',
-          level: 'Advanced',
-          isActive: true,
-        },
-      }),
-      prisma.course.create({
-        data: {
-          code: 'CS303',
-          title: 'Computer Security',
-          description: 'Cryptography, network security, secure coding practices, and ethical hacking.',
-          subject: 'Computer Science',
-          level: 'Advanced',
-          isActive: true,
-        },
-      }),
-      prisma.course.create({
-        data: {
-          code: 'CS304',
-          title: 'Distributed Systems',
-          description: 'Design and implementation of distributed applications, consensus, and fault tolerance.',
-          subject: 'Computer Science',
-          level: 'Advanced',
-          isActive: true,
-        },
-      }),
-      prisma.course.create({
-        data: {
-          code: 'CS305',
-          title: 'Compiler Design',
-          description: 'Lexical analysis, parsing, code generation, and optimization techniques.',
-          subject: 'Computer Science',
-          level: 'Advanced',
-          isActive: true,
-        },
-      }),
+          courseId: courses[0].id,
+          title: 'Weekly Discussion: Programming Background',
+          description: `What are your first impressions of programming and Java?
 
-      // Electives (400s)
-      prisma.course.create({
-        data: {
-          code: 'CS401',
-          title: 'Mobile App Development',
-          description: 'iOS and Android development using Swift and Kotlin/Java.',
-          subject: 'Computer Science',
-          level: 'Elective',
+Share your background:
+- Have you programmed before? If so, in what languages?
+- What motivated you to take this course?
+- What do you hope to learn or accomplish by the end of the semester?
+- What aspects of programming seem most interesting or challenging to you?
+
+Your initial post should be 150-200 words. Then, read and respond thoughtfully to at least 2 of your classmates' posts.`,
+          type: 'DISCUSSION',
+          defaultMaxPoints: 5,
+          defaultSubmissionType: 'NONE',
+          defaultAllowPeerReplies: true,
+          defaultMinimumReplyCount: 2,
+          defaultAutoCompleteEnabled: true,
+          defaultRequirePostBeforeViewing: true,
+          orderIndex: 2,
           isActive: true,
         },
       }),
-      prisma.course.create({
+      prisma.assessmentTemplate.create({
         data: {
-          code: 'CS402',
-          title: 'Cloud Computing',
-          description: 'AWS, Azure, containerization with Docker, and Kubernetes orchestration.',
-          subject: 'Computer Science',
-          level: 'Elective',
+          courseId: courses[0].id,
+          title: 'Interactive Coding Exercise',
+          description: 'Guided interactive coding lesson',
+          type: 'INTERACTIVE_LESSON',
+          defaultMaxPoints: 10,
+          defaultSubmissionType: 'NONE',
+          orderIndex: 3,
           isActive: true,
         },
       }),
-      prisma.course.create({
+      prisma.assessmentTemplate.create({
         data: {
-          code: 'CS403',
-          title: 'Game Development',
-          description: 'Game engines, graphics programming, physics simulation, and game design principles.',
-          subject: 'Computer Science',
-          level: 'Elective',
+          courseId: courses[0].id,
+          title: 'Midterm Exam',
+          description: 'Comprehensive midterm examination',
+          type: 'EXAM',
+          defaultMaxPoints: 100,
+          defaultSubmissionType: 'BOTH',
+          orderIndex: 4,
           isActive: true,
         },
       }),
-      prisma.course.create({
+      // CS102 Templates
+      prisma.assessmentTemplate.create({
         data: {
-          code: 'CS404',
-          title: 'Computer Graphics',
-          description: '3D rendering, transformations, lighting models, and graphics pipeline.',
-          subject: 'Computer Science',
-          level: 'Elective',
+          courseId: courses[1].id,
+          title: 'Web Development Project',
+          description: 'Build a web application component',
+          type: 'LAB',
+          defaultMaxPoints: 50,
+          defaultSubmissionType: 'BOTH',
+          orderIndex: 1,
           isActive: true,
         },
       }),
-      prisma.course.create({
+      prisma.assessmentTemplate.create({
         data: {
-          code: 'CS405',
-          title: 'Cybersecurity and Penetration Testing',
-          description: 'Advanced security topics, vulnerability assessment, and ethical hacking techniques.',
-          subject: 'Computer Science',
-          level: 'Elective',
+          courseId: courses[1].id,
+          title: 'Discussion: Modern Web Technologies',
+          description: `Research and discuss a modern web technology or framework.
+
+Choose ONE of the following topics to research and discuss:
+1. React vs Vue vs Angular - Which framework would you choose and why?
+2. The importance of web accessibility (WCAG guidelines)
+3. Progressive Web Apps (PWAs) vs Native Apps
+4. CSS Grid vs Flexbox - When to use which?
+5. The role of TypeScript in modern web development
+
+Your post should include:
+- A brief explanation of the technology/concept
+- Its benefits and potential drawbacks
+- A real-world use case or example
+- Your personal opinion or experience (if any)
+
+Minimum 200 words. Reply to at least 3 classmates who chose different topics than you.`,
+          type: 'DISCUSSION',
+          defaultMaxPoints: 10,
+          defaultSubmissionType: 'NONE',
+          defaultAllowPeerReplies: true,
+          defaultMinimumReplyCount: 3,
+          orderIndex: 2,
+          isActive: true,
+        },
+      }),
+      // CS201 Templates
+      prisma.assessmentTemplate.create({
+        data: {
+          courseId: courses[2].id,
+          title: 'Algorithm Implementation Lab',
+          description: 'Implement and analyze algorithms',
+          type: 'LAB',
+          defaultMaxPoints: 25,
+          defaultSubmissionType: 'BOTH',
+          orderIndex: 1,
+          isActive: true,
+        },
+      }),
+      prisma.assessmentTemplate.create({
+        data: {
+          courseId: courses[2].id,
+          title: 'Discussion: Algorithm Complexity Analysis',
+          description: `Explain Big-O notation and analyze algorithm complexity.
+
+Part 1 - Explain the concept:
+Explain in your own words what Big-O notation represents. Why is it important in computer science?
+
+Part 2 - Provide examples:
+Give TWO real-world examples of algorithms with different time complexities (e.g., O(1), O(n), O(n²), O(log n)).
+For each example:
+- Name the algorithm or operation
+- Explain its time complexity
+- Describe a scenario where this complexity matters
+
+Part 3 - Critical thinking:
+When might you choose a slower algorithm over a faster one? Consider factors beyond just Big-O notation.
+
+Minimum 250 words. Reply to at least 2 classmates, either adding to their examples or respectfully challenging their analysis.`,
+          type: 'DISCUSSION',
+          defaultMaxPoints: 5,
+          defaultSubmissionType: 'NONE',
+          defaultAllowPeerReplies: true,
+          defaultMinimumReplyCount: 2,
+          orderIndex: 2,
           isActive: true,
         },
       }),
     ])
-    console.log(`✅ Created ${courses.length} courses`)
+    console.log(`✅ Created ${assessmentTemplates.length} assessment templates`)
 
-    // NOTE: Classes, enrollments, assessments, and submissions removed
-    // These will be created by real professors and students via the app
-    console.log('\n✅ Skipping test classes/enrollments/assessments (create via app)')
+    // Step 5: Create module templates
+    console.log('\n📚 Creating module templates...')
+    const moduleTemplates = await Promise.all([
+      // CS101 Module Templates
+      prisma.moduleTemplate.create({
+        data: {
+          courseId: courses[0].id,
+          title: 'Week 1: Introduction to Java',
+          description: 'Getting started with Java programming',
+          orderIndex: 1,
+          isActive: true,
+        },
+      }),
+      prisma.moduleTemplate.create({
+        data: {
+          courseId: courses[0].id,
+          title: 'Week 2: Variables and Data Types',
+          description: 'Understanding primitive and reference types',
+          orderIndex: 2,
+          isActive: true,
+        },
+      }),
+      prisma.moduleTemplate.create({
+        data: {
+          courseId: courses[0].id,
+          title: 'Week 3: Control Flow',
+          description: 'Conditionals and loops',
+          orderIndex: 3,
+          isActive: true,
+        },
+      }),
+      // CS102 Module Templates
+      prisma.moduleTemplate.create({
+        data: {
+          courseId: courses[1].id,
+          title: 'Week 1: HTML & CSS Basics',
+          description: 'Introduction to web markup and styling',
+          orderIndex: 1,
+          isActive: true,
+        },
+      }),
+      prisma.moduleTemplate.create({
+        data: {
+          courseId: courses[1].id,
+          title: 'Week 2: JavaScript Fundamentals',
+          description: 'Learn JavaScript basics and DOM manipulation',
+          orderIndex: 2,
+          isActive: true,
+        },
+      }),
+      // CS201 Module Templates
+      prisma.moduleTemplate.create({
+        data: {
+          courseId: courses[2].id,
+          title: 'Week 1: Arrays and Lists',
+          description: 'Basic data structures',
+          orderIndex: 1,
+          isActive: true,
+        },
+      }),
+    ])
+    console.log(`✅ Created ${moduleTemplates.length} module templates`)
 
-    console.log('\n🎉 Database initialization completed successfully!')
-    console.log('\n📊 Summary:')
-    console.log(`   - 1 primary admin (${PRIMARY_ADMIN.email})`)
-    console.log(`   - ${courses.length} sample courses`)
-    console.log(`   - Real users will sign up via Clerk`)
-    console.log(`   - Professors and students can create classes and enrollments via the app`)
+    // Step 6: Create module item templates
+    console.log('\n📋 Creating module item templates...')
+    const moduleItemTemplates = await Promise.all([
+      // CS101 Week 1 Items
+      prisma.moduleItemTemplate.create({
+        data: {
+          moduleTemplateId: moduleTemplates[0].id,
+          itemType: 'PAGE',
+          title: 'Course Welcome & Syllabus',
+          pageContent:
+            '# Welcome to CS101!\n\nThis course introduces fundamental programming concepts using Java.',
+          orderIndex: 1,
+          isPublished: true,
+          isRequired: true,
+        },
+      }),
+      prisma.moduleItemTemplate.create({
+        data: {
+          moduleTemplateId: moduleTemplates[0].id,
+          itemType: 'EXTERNAL_LINK',
+          title: 'Revel Chapter 1: Introduction',
+          externalUrl: 'https://revel.pearson.com/courses/chapter1',
+          orderIndex: 2,
+          isPublished: true,
+          isRequired: true,
+        },
+      }),
+      prisma.moduleItemTemplate.create({
+        data: {
+          moduleTemplateId: moduleTemplates[0].id,
+          itemType: 'ASSESSMENT',
+          title: 'Lab 1: Hello World',
+          assessmentTemplateId: assessmentTemplates[0].id, // Weekly Lab
+          orderIndex: 3,
+          isPublished: true,
+          isRequired: true,
+        },
+      }),
+      prisma.moduleItemTemplate.create({
+        data: {
+          moduleTemplateId: moduleTemplates[0].id,
+          itemType: 'ASSESSMENT',
+          title: 'Discussion: First Impressions of Java',
+          assessmentTemplateId: assessmentTemplates[1].id, // Discussion template
+          orderIndex: 4,
+          isPublished: true,
+          isRequired: true,
+        },
+      }),
+      // CS101 Week 2 Items
+      prisma.moduleItemTemplate.create({
+        data: {
+          moduleTemplateId: moduleTemplates[1].id,
+          itemType: 'PAGE',
+          title: 'Data Types Overview',
+          pageContent: '# Java Data Types\n\nLearn about primitive and reference types in Java.',
+          orderIndex: 1,
+          isPublished: true,
+          isRequired: true,
+        },
+      }),
+      prisma.moduleItemTemplate.create({
+        data: {
+          moduleTemplateId: moduleTemplates[1].id,
+          itemType: 'ASSESSMENT',
+          title: 'Lab 2: Variables Practice',
+          assessmentTemplateId: assessmentTemplates[0].id, // Weekly Lab
+          orderIndex: 2,
+          isPublished: true,
+          isRequired: true,
+        },
+      }),
+      // CS102 Week 1 Items
+      prisma.moduleItemTemplate.create({
+        data: {
+          moduleTemplateId: moduleTemplates[3].id,
+          itemType: 'PAGE',
+          title: 'HTML Basics',
+          pageContent: '# HTML Introduction\n\nLearn the structure of HTML documents.',
+          orderIndex: 1,
+          isPublished: true,
+          isRequired: true,
+        },
+      }),
+      prisma.moduleItemTemplate.create({
+        data: {
+          moduleTemplateId: moduleTemplates[3].id,
+          itemType: 'ASSESSMENT',
+          title: 'Project 1: Personal Website',
+          assessmentTemplateId: assessmentTemplates[4].id, // Web Dev Project
+          orderIndex: 2,
+          isPublished: true,
+          isRequired: true,
+        },
+      }),
+    ])
+    console.log(`✅ Created ${moduleItemTemplates.length} module item templates`)
 
-    /* REMOVED: Test data creation (causes conflicts with real signups)
+    // Step 7: Create professors
+    console.log('\n👨‍🏫 Creating professors...')
+    const professors = await Promise.all([
+      prisma.user.create({
+        data: {
+          email: 'john.smith@professor.edu',
+          password: 'prof123',
+          role: 'professor',
+          fullName: 'Dr. John Smith',
+          usernameSchoolId: '100001',
+          isApproved: true,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          email: 'sarah.johnson@professor.edu',
+          password: 'prof123',
+          role: 'professor',
+          fullName: 'Dr. Sarah Johnson',
+          usernameSchoolId: '100002',
+          isApproved: true,
+        },
+      }),
+    ])
+    console.log(`✅ Created ${professors.length} professors`)
 
-    // Step 5: Create classes
+    // Step 8: Create students
+    console.log('\n👨‍🎓 Creating students...')
+    const students = await Promise.all([
+      prisma.user.create({
+        data: {
+          email: 'alice.anderson@student.edu',
+          password: 'student123',
+          role: 'student',
+          fullName: 'Alice Anderson',
+          usernameSchoolId: '200001',
+          isApproved: true,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          email: 'bob.brown@student.edu',
+          password: 'student123',
+          role: 'student',
+          fullName: 'Bob Brown',
+          usernameSchoolId: '200002',
+          isApproved: true,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          email: 'charlie.clark@student.edu',
+          password: 'student123',
+          role: 'student',
+          fullName: 'Charlie Clark',
+          usernameSchoolId: '200003',
+          isApproved: true,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          email: 'diana.davis@student.edu',
+          password: 'student123',
+          role: 'student',
+          fullName: 'Diana Davis',
+          usernameSchoolId: '200004',
+          isApproved: true,
+        },
+      }),
+    ])
+    console.log(`✅ Created ${students.length} students`)
+
+    // Step 9: Create classes and auto-clone templates
     console.log('\n🏫 Creating classes...')
     const classes = await Promise.all([
+      // Prof Smith's CS101 class
       prisma.class.create({
         data: {
           courseId: courses[0].id,
@@ -305,6 +502,7 @@ async function main() {
           isActive: true,
         },
       }),
+      // Prof Johnson's CS102 class
       prisma.class.create({
         data: {
           courseId: courses[1].id,
@@ -317,6 +515,7 @@ async function main() {
           isActive: true,
         },
       }),
+      // Prof Smith's CS201 class
       prisma.class.create({
         data: {
           courseId: courses[2].id,
@@ -332,438 +531,184 @@ async function main() {
     ])
     console.log(`✅ Created ${classes.length} classes`)
 
-    // Step 6: Create enrollments
-    console.log('\n📝 Creating enrollments...')
+    // Step 10: Clone assessment templates to actual assessments
+    console.log('\n📋 Cloning assessment templates to classes...')
+    for (const cls of classes) {
+      const assessmentCount = await createAssessmentsFromTemplates(cls.id, cls.courseId)
+      console.log(`   ✅ Created ${assessmentCount} assessments for ${cls.title}`)
+    }
+
+    // Step 11: Clone module templates to actual modules
+    console.log('\n📦 Cloning module templates to classes...')
+    for (const cls of classes) {
+      const moduleCount = await createModulesFromTemplates(cls.id, cls.courseId)
+      console.log(`   ✅ Created ${moduleCount} modules for ${cls.title}`)
+    }
+
+    // Step 12: Create enrollments
+    console.log('\n📚 Creating enrollments...')
     const enrollments = await Promise.all([
-      // CS101 - All students
-      ...students.map((student) =>
-        prisma.enrollment.create({
-          data: {
-            classId: classes[0].id,
-            studentId: student.id,
-            status: 'active',
-          },
-        })
-      ),
-      // CS102 - First 3 students
-      ...students.slice(0, 3).map((student) =>
-        prisma.enrollment.create({
-          data: {
-            classId: classes[1].id,
-            studentId: student.id,
-            status: 'active',
-          },
-        })
-      ),
-      // CS201 - Last 2 students
-      ...students.slice(3, 5).map((student) =>
-        prisma.enrollment.create({
-          data: {
-            classId: classes[2].id,
-            studentId: student.id,
-            status: 'active',
-          },
-        })
-      ),
+      // CS101 enrollments
+      prisma.enrollment.create({
+        data: { classId: classes[0].id, studentId: students[0].id, status: 'active' },
+      }),
+      prisma.enrollment.create({
+        data: { classId: classes[0].id, studentId: students[1].id, status: 'active' },
+      }),
+      prisma.enrollment.create({
+        data: { classId: classes[0].id, studentId: students[2].id, status: 'active' },
+      }),
+      // CS102 enrollments
+      prisma.enrollment.create({
+        data: { classId: classes[1].id, studentId: students[1].id, status: 'active' },
+      }),
+      prisma.enrollment.create({
+        data: { classId: classes[1].id, studentId: students[3].id, status: 'active' },
+      }),
+      // CS201 enrollments
+      prisma.enrollment.create({
+        data: { classId: classes[2].id, studentId: students[2].id, status: 'active' },
+      }),
+      prisma.enrollment.create({
+        data: { classId: classes[2].id, studentId: students[3].id, status: 'active' },
+      }),
     ])
     console.log(`✅ Created ${enrollments.length} enrollments`)
 
-    // Step 7: Create assessments
-    console.log('\n📋 Creating assessments...')
-    const assessments = await Promise.all([
-      // CS101 Assessments
-      prisma.assessment.create({
-        data: {
-          classId: classes[0].id,
-          title: 'Lab 1: Hello World',
-          slug: 'lab-1-hello-world',
-          description: 'Write your first Java program that prints "Hello, World!" to the console.',
-          dueAt: new Date('2025-09-15T23:59:59Z'),
-          maxPoints: 10,
-          orderIndex: 1,
-        },
-      }),
-      prisma.assessment.create({
-        data: {
-          classId: classes[0].id,
-          title: 'Lab 2: Variables and Data Types',
-          slug: 'lab-2-variables',
-          description: 'Practice working with different data types and variables in Java.',
-          dueAt: new Date('2025-09-22T23:59:59Z'),
-          maxPoints: 15,
-          orderIndex: 2,
-        },
-      }),
-      prisma.assessment.create({
-        data: {
-          classId: classes[0].id,
-          title: 'Midterm Exam',
-          slug: 'midterm-exam',
-          description: 'Comprehensive exam covering topics from weeks 1-7.',
-          dueAt: new Date('2025-10-20T23:59:59Z'),
-          maxPoints: 100,
-          orderIndex: 3,
-        },
-      }),
-      // CS102 Assessments
-      prisma.assessment.create({
-        data: {
-          classId: classes[1].id,
-          title: 'Project 1: Personal Portfolio Website',
-          slug: 'project-1-portfolio',
-          description: 'Create a personal portfolio website using HTML and CSS.',
-          dueAt: new Date('2025-09-30T23:59:59Z'),
-          maxPoints: 50,
-          orderIndex: 1,
-        },
-      }),
-      prisma.assessment.create({
-        data: {
-          classId: classes[1].id,
-          title: 'Lab 3: JavaScript Basics',
-          slug: 'lab-3-javascript',
-          description: 'Learn JavaScript fundamentals including variables, functions, and DOM manipulation.',
-          dueAt: new Date('2025-10-10T23:59:59Z'),
-          maxPoints: 20,
-          orderIndex: 2,
-        },
-      }),
-      // CS201 Assessments
-      prisma.assessment.create({
-        data: {
-          classId: classes[2].id,
-          title: 'Assignment 1: Implementing a Stack',
-          slug: 'assignment-1-stack',
-          description: 'Implement a stack data structure with push, pop, and peek operations.',
-          dueAt: new Date('2025-09-18T23:59:59Z'),
-          maxPoints: 25,
-          orderIndex: 1,
-        },
-      }),
-    ])
-    console.log(`✅ Created ${assessments.length} assessments`)
+    // Step 13: Get cloned assessments for creating submissions
+    console.log('\n📝 Fetching cloned assessments...')
+    const cs101Assessments = await prisma.assessment.findMany({
+      where: { classId: classes[0].id },
+      orderBy: { orderIndex: 'asc' },
+    })
+    const cs102Assessments = await prisma.assessment.findMany({
+      where: { classId: classes[1].id },
+      orderBy: { orderIndex: 'asc' },
+    })
+    console.log(
+      `✅ Found ${cs101Assessments.length} CS101 assessments, ${cs102Assessments.length} CS102 assessments`
+    )
 
-    // Step 8: Create sample submissions
-    console.log('\n📄 Creating sample submissions...')
-    const submissions = await Promise.all([
-      // CS101 Lab 1 - All 5 students enrolled
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[0].id,
-          studentId: students[0].id, // Alice
-          autoScore: 10,
-          manualScore: 0,
-          totalScore: 10,
-          feedback: 'Perfect! Great job on your first Java program.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-14T15:30:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[0].id,
-          studentId: students[1].id, // Bob
-          autoScore: 9,
-          manualScore: 1,
-          totalScore: 10,
-          feedback: 'Excellent work! Minor formatting issue fixed.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-14T18:45:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[0].id,
-          studentId: students[2].id, // Charlie
-          autoScore: 8,
-          manualScore: 0,
-          totalScore: 8,
-          feedback: 'Good work! Watch out for syntax errors.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-15T10:20:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[0].id,
-          studentId: students[3].id, // Diana
-          autoScore: 9,
-          manualScore: 0,
-          totalScore: 9,
-          feedback: 'Very good! Clean code structure.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-15T14:00:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[0].id,
-          studentId: students[4].id, // Ethan
-          autoScore: 10,
-          manualScore: 0,
-          totalScore: 10,
-          feedback: 'Perfect submission! Well done.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-15T20:30:00Z'),
-        },
-      }),
+    // Step 14: Create sample discussion posts
+    console.log('\n💬 Creating sample discussion posts...')
+    const discussionAssessments = cs101Assessments.filter((a) => a.type === 'DISCUSSION')
+    if (discussionAssessments.length > 0) {
+      const discussionPosts = await Promise.all([
+        prisma.discussionPost.create({
+          data: {
+            assessmentId: discussionAssessments[0].id,
+            classId: classes[0].id,
+            studentId: students[0].id,
+            content:
+              'Java seems really powerful! I love how strongly typed it is compared to Python.',
+          },
+        }),
+        prisma.discussionPost.create({
+          data: {
+            assessmentId: discussionAssessments[0].id,
+            classId: classes[0].id,
+            studentId: students[1].id,
+            content: 'The syntax takes some getting used to, but I can see the benefits.',
+          },
+        }),
+      ])
+      console.log(`✅ Created ${discussionPosts.length} discussion posts`)
 
-      // CS101 Lab 2 - All 5 students
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[1].id,
-          studentId: students[0].id, // Alice
-          autoScore: 15,
-          totalScore: 15,
-          feedback: 'Outstanding! You have a great understanding of data types.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-21T16:00:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[1].id,
-          studentId: students[1].id, // Bob
-          autoScore: 13,
-          manualScore: 1,
-          totalScore: 14,
-          feedback: 'Great work! One minor logical error in type conversion.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-21T19:30:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[1].id,
-          studentId: students[2].id, // Charlie
-          autoScore: 12,
-          totalScore: 12,
-          feedback: 'Good job! Keep practicing variable naming conventions.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-22T11:15:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[1].id,
-          studentId: students[3].id, // Diana
-          autoScore: 14,
-          totalScore: 14,
-          feedback: 'Excellent understanding of primitive and reference types!',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-22T13:45:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[1].id,
-          studentId: students[4].id, // Ethan
-          autoScore: 13,
-          totalScore: 13,
-          feedback: 'Very good! Consider adding more comments to your code.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-22T21:00:00Z'),
-        },
-      }),
+      // Create replies
+      const discussionReplies = await Promise.all([
+        prisma.discussionReply.create({
+          data: {
+            assessmentId: discussionAssessments[0].id,
+            classId: classes[0].id,
+            authorId: students[2].id,
+            postId: discussionPosts[0].id,
+            content: 'I agree! The type safety helps catch errors early.',
+          },
+        }),
+        prisma.discussionReply.create({
+          data: {
+            assessmentId: discussionAssessments[0].id,
+            classId: classes[0].id,
+            authorId: students[0].id,
+            postId: discussionPosts[1].id,
+            content: 'It gets easier with practice. The IDE helps a lot!',
+          },
+        }),
+      ])
+      console.log(`✅ Created ${discussionReplies.length} discussion replies`)
+    }
 
-      // CS101 Midterm - All 5 students
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[2].id,
-          studentId: students[0].id, // Alice
-          autoScore: 92,
-          manualScore: 6,
-          totalScore: 98,
-          feedback: 'Exceptional performance! One of the top scores in the class.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-10-20T14:30:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[2].id,
-          studentId: students[1].id, // Bob
-          autoScore: 78,
-          manualScore: 7,
-          totalScore: 85,
-          feedback: 'Good work! Review recursion and inheritance concepts.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-10-20T14:45:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[2].id,
-          studentId: students[2].id, // Charlie
-          autoScore: 70,
-          manualScore: 5,
-          totalScore: 75,
-          feedback: 'Fair performance. Please attend office hours to review polymorphism.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-10-20T15:00:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[2].id,
-          studentId: students[3].id, // Diana
-          autoScore: 85,
-          manualScore: 8,
-          totalScore: 93,
-          feedback: 'Excellent exam! Strong grasp of all course concepts.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-10-20T15:15:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[2].id,
-          studentId: students[4].id, // Ethan
-          autoScore: 82,
-          manualScore: 6,
-          totalScore: 88,
-          feedback: 'Very good! Minor errors in the abstract classes section.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-10-20T15:30:00Z'),
-        },
-      }),
+    // Step 15: Create sample lab submissions
+    console.log('\n📤 Creating sample submissions...')
+    const labAssessments = cs101Assessments.filter((a) => a.type === 'LAB')
+    if (labAssessments.length > 0) {
+      const submissions = await Promise.all([
+        prisma.assessmentSubmission.create({
+          data: {
+            assessmentId: labAssessments[0].id,
+            studentId: students[0].id,
+            classId: classes[0].id,
+            submissionText: 'Completed the Hello World assignment.',
+            status: 'GRADED',
+            manualScore: 15,
+            totalScore: 15,
+            feedback: 'Perfect! Great work on your first Java program.',
+          },
+        }),
+        prisma.assessmentSubmission.create({
+          data: {
+            assessmentId: labAssessments[0].id,
+            studentId: students[1].id,
+            classId: classes[0].id,
+            submissionText: 'Here is my Hello World program.',
+            status: 'GRADED',
+            manualScore: 14,
+            totalScore: 14,
+            feedback: 'Good work! Minor style issues.',
+          },
+        }),
+        prisma.assessmentSubmission.create({
+          data: {
+            assessmentId: labAssessments[0].id,
+            studentId: students[2].id,
+            classId: classes[0].id,
+            submissionText: 'Submitted my lab assignment.',
+            status: 'SUBMITTED',
+          },
+        }),
+      ])
+      console.log(`✅ Created ${submissions.length} lab submissions`)
+    }
 
-      // CS102 Project 1 - First 3 students (Alice, Bob, Charlie)
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[3].id,
-          studentId: students[0].id, // Alice
-          autoScore: 45,
-          manualScore: 5,
-          totalScore: 50,
-          feedback: 'Outstanding portfolio! Beautiful design and clean code.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-29T22:00:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[3].id,
-          studentId: students[1].id, // Bob
-          autoScore: 40,
-          manualScore: 3,
-          totalScore: 43,
-          feedback: 'Great effort! Consider improving mobile responsiveness.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-30T10:30:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[3].id,
-          studentId: students[2].id, // Charlie
-          autoScore: 38,
-          manualScore: 0,
-          totalScore: 38,
-          feedback: 'Good work, but the layout needs improvement on smaller screens.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-30T18:45:00Z'),
-        },
-      }),
-
-      // CS102 Lab 3 - First 3 students
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[4].id,
-          studentId: students[0].id, // Alice
-          autoScore: 20,
-          totalScore: 20,
-          feedback: 'Perfect! Excellent understanding of JavaScript fundamentals.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-10-09T17:00:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[4].id,
-          studentId: students[1].id, // Bob
-          autoScore: 17,
-          totalScore: 17,
-          feedback: 'Very good! Minor issues with event handling.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-10-10T09:30:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[4].id,
-          studentId: students[2].id, // Charlie
-          autoScore: 16,
-          totalScore: 16,
-          feedback: 'Good work! Review arrow functions and closures.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-10-10T20:15:00Z'),
-        },
-      }),
-
-      // CS201 Assignment 1 - Last 2 students (Diana, Ethan)
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[5].id,
-          studentId: students[3].id, // Diana
-          autoScore: 23,
-          manualScore: 2,
-          totalScore: 25,
-          feedback: 'Perfect implementation! Excellent time complexity analysis.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-17T16:00:00Z'),
-        },
-      }),
-      prisma.assessmentSubmission.create({
-        data: {
-          assessmentId: assessments[5].id,
-          studentId: students[4].id, // Ethan
-          autoScore: 21,
-          manualScore: 1,
-          totalScore: 22,
-          feedback: 'Excellent work! Minor edge case not handled.',
-          status: 'graded',
-          attemptNumber: 1,
-          submittedAt: new Date('2025-09-18T11:30:00Z'),
-        },
-      }),
-    ])
-    console.log(`✅ Created ${submissions.length} sample submissions`)
-
-    END OF REMOVED TEST DATA */
-
-  } catch (e) {
-    console.error('❌ Error during database initialization:', e)
-    throw e
+    console.log('\n✅ Database seeded successfully with proper template workflow!')
+    console.log('\n📊 Summary:')
+    console.log(`   • ${courses.length} courses with templates`)
+    console.log(`   • ${assessmentTemplates.length} assessment templates`)
+    console.log(`   • ${moduleTemplates.length} module templates`)
+    console.log(`   • ${professors.length} professors`)
+    console.log(`   • ${students.length} students`)
+    console.log(`   • ${classes.length} classes`)
+    console.log(`   • Assessments and modules auto-cloned from templates`)
+    console.log(`   • ${enrollments.length} student enrollments`)
+    console.log('\n🎯 Workflow demonstrated:')
+    console.log('   1. Admin creates course templates (assessments + modules)')
+    console.log('   2. Professors adopt courses → templates auto-clone to classes')
+    console.log('   3. Students enroll and can see modules with assessments')
+    console.log('   4. Students submit work and participate in discussions')
+  } catch (error) {
+    console.error('❌ Error seeding database:', error)
+    throw error
+  } finally {
+    await prisma.$disconnect()
   }
 }
 
 main()
-  .catch((e) => {
-    process.exit(1)
+  .then(() => {
+    console.log('\n✅ Seed script completed successfully')
+    process.exit(0)
   })
-  .finally(async () => {
-    await prisma.$disconnect()
+  .catch((error) => {
+    console.error('\n❌ Seed script failed:', error)
+    process.exit(1)
   })

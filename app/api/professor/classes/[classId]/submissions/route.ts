@@ -75,6 +75,26 @@ export async function GET(
             type: true,
             maxPoints: true,
             dueAt: true,
+            moduleItems: {
+              where: {
+                module: {
+                  classId: classId,
+                  isPublished: true,
+                },
+                isPublished: true,
+              },
+              select: {
+                id: true,
+                module: {
+                  select: {
+                    id: true,
+                    title: true,
+                    orderIndex: true,
+                  },
+                },
+              },
+              take: 1,
+            },
           },
         },
       },

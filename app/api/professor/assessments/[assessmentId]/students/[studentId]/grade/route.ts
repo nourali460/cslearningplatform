@@ -108,8 +108,6 @@ export async function PUT(
           studentId: studentId,
           classId: assessment.classId, // Direct class association
           submittedAt: new Date(), // Mark as submitted now
-          submissionText: null,
-          submissionFiles: null,
           manualScore: score,
           totalScore: score,
           status: 'GRADED',

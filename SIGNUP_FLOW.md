@@ -80,8 +80,8 @@ Admins cannot sign up publicly. Admin accounts are created manually.
 
 ### How to Login:
 1. Go to http://localhost:3000/admin-login
-2. Enter admin email: `subscriptionnova@gmail.com`
-3. Enter your password
+2. Enter admin email: `subscriptionsnova@gmail.com`
+3. Enter your password: `admin123`
 4. Redirected to admin dashboard
 
 ---

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getSession } from '@/lib/session'
 import { generateClassCode, classCodeExists } from '@/lib/class-code-generator'
+import { createAssessmentsFromTemplates } from '@/lib/assessment-templates'
+import { createModulesFromTemplates } from '@/lib/module-templates'
 
 /**
  * GET /api/professor/classes
@@ -234,6 +236,26 @@ export async function POST(request: Request) {
         },
       },
     })
+
+    // Auto-generate assessments from course templates
+    try {
+      const assessmentCount = await createAssessmentsFromTemplates(newClass.id, course.id)
+      console.log(`[Class Creation] Created ${assessmentCount} assessments from templates`)
+    } catch (error) {
+      console.error('[Class Creation] Failed to create assessments from templates:', error)
+      // Don't fail class creation if assessment generation fails
+      // Professors can manually add assessments later
+    }
+
+    // Auto-generate modules from course templates
+    try {
+      const moduleCount = await createModulesFromTemplates(newClass.id, course.id)
+      console.log(`[Class Creation] Created ${moduleCount} modules from templates`)
+    } catch (error) {
+      console.error('[Class Creation] Failed to create modules from templates:', error)
+      // Don't fail class creation if module generation fails
+      // Professors can manually add modules later
+    }
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { Calendar, Clock, Award, CheckCircle, AlertCircle } from 'lucide-react'
 import { AssessmentTypeBadge } from './AssessmentTypeIcon'
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 type AssessmentType = 'INTERACTIVE_LESSON' | 'LAB' | 'EXAM' | 'QUIZ' | 'DISCUSSION'
 type SubmissionStatus = 'DRAFT' | 'SUBMITTED' | 'GRADED' | 'RETURNED' | 'LATE'
@@ -39,15 +42,15 @@ type AssessmentCardProps = {
 export function AssessmentCard({ assignment }: AssessmentCardProps) {
   const getStatusBadge = () => {
     if (assignment.isOverdue) {
-      return <span className="badge bg-danger">Overdue</span>
+      return <Badge variant="error">Overdue</Badge>
     }
     if (assignment.isGraded) {
-      return <span className="badge bg-success">Graded</span>
+      return <Badge variant="success">Graded</Badge>
     }
     if (assignment.isSubmitted) {
-      return <span className="badge bg-primary">Submitted</span>
+      return <Badge variant="info">Submitted</Badge>
     }
-    return <span className="badge bg-secondary">Not Started</span>
+    return <Badge variant="default">Not Started</Badge>
   }
 
   const getDaysUntilDue = () => {
@@ -76,26 +79,26 @@ export function AssessmentCard({ assignment }: AssessmentCardProps) {
   const daysUntilDue = getDaysUntilDue()
 
   return (
-    <div className="card h-100 border-0 shadow-sm hover-shadow">
+    <Card className="h-full flex flex-col hover:shadow-lg transition-shadow duration-300 border-l-4 border-l-accent-purple/40">
       {/* Card Header */}
-      <div className="card-header bg-white border-bottom">
-        <div className="d-flex justify-content-between align-items-start mb-2">
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-start mb-3">
           <AssessmentTypeBadge type={assignment.type} />
           {getStatusBadge()}
         </div>
-        <h5 className="card-title mb-1">{assignment.title}</h5>
-        <p className="text-muted small mb-0">
+        <h5 className="text-lg font-semibold text-foreground mb-2 line-clamp-2">{assignment.title}</h5>
+        <p className="text-sm text-muted-foreground">
           {assignment.class.course.code} • {assignment.class.classCode}
         </p>
-      </div>
+      </CardHeader>
 
       {/* Card Body */}
-      <div className="card-body">
+      <CardContent className="flex-1 space-y-4">
         {/* Due Date */}
         {assignment.dueAt && (
-          <div className="mb-3">
-            <div className="d-flex align-items-center text-muted small">
-              <Calendar size={14} className="me-2" />
+          <div className="space-y-1">
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Calendar className="h-4 w-4 mr-2" />
               <span>
                 {new Date(assignment.dueAt).toLocaleDateString('en-US', {
                   weekday: 'short',
@@ -111,40 +114,40 @@ export function AssessmentCard({ assignment }: AssessmentCardProps) {
               </span>
             </div>
             {daysUntilDue && (
-              <div
-                className={`small mt-1 ${
-                  assignment.isOverdue
-                    ? 'text-danger'
-                    : daysUntilDue.includes('today') || daysUntilDue.includes('tomorrow')
-                      ? 'text-warning'
-                      : 'text-info'
-                }`}
-              >
-                <Clock size={14} className="me-1" />
-                {daysUntilDue}
+              <div className="flex items-center text-xs">
+                <Clock className="h-3 w-3 mr-1" />
+                <span
+                  className={
+                    assignment.isOverdue
+                      ? 'text-danger font-medium'
+                      : daysUntilDue.includes('today') || daysUntilDue.includes('tomorrow')
+                        ? 'text-warning font-medium'
+                        : 'text-info'
+                  }
+                >
+                  {daysUntilDue}
+                </span>
               </div>
             )}
           </div>
         )}
 
         {/* Points */}
-        <div className="mb-3">
-          <div className="d-flex align-items-center text-muted small">
-            <Award size={14} className="me-2" />
-            <span>{Number(assignment.maxPoints).toFixed(0)} points</span>
-          </div>
+        <div className="flex items-center text-sm text-muted-foreground">
+          <Award className="h-4 w-4 mr-2" />
+          <span>{Number(assignment.maxPoints).toFixed(0)} points</span>
         </div>
 
         {/* Submission Info */}
         {assignment.submission && (
-          <div className="mt-3 pt-3 border-top">
+          <div className="mt-4 pt-4 border-t border-border">
             {assignment.isGraded && assignment.submission.totalScore !== null ? (
               <div>
-                <div className="small text-muted mb-1">Your Score</div>
-                <h4 className={`mb-0 ${getScoreColor()}`}>
+                <div className="text-xs text-muted-foreground mb-1">Your Score</div>
+                <div className={`text-2xl font-bold ${getScoreColor()}`}>
                   {Number(assignment.submission.totalScore).toFixed(1)} /{' '}
                   {Number(assignment.maxPoints).toFixed(0)}
-                  <span className="small ms-2">
+                  <span className="text-sm ml-2 text-muted-foreground">
                     (
                     {(
                       (Number(assignment.submission.totalScore) / Number(assignment.maxPoints)) *
@@ -152,39 +155,40 @@ export function AssessmentCard({ assignment }: AssessmentCardProps) {
                     ).toFixed(1)}
                     %)
                   </span>
-                </h4>
+                </div>
               </div>
             ) : (
-              <div className="small text-muted">
-                <CheckCircle size={14} className="me-1" />
-                Submitted on{' '}
-                {new Date(assignment.submission.submittedAt).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
+              <div className="text-sm text-muted-foreground flex items-center">
+                <CheckCircle className="h-4 w-4 mr-2 text-success" />
+                <span>
+                  Submitted on{' '}
+                  {new Date(assignment.submission.submittedAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </span>
                 {assignment.submission.isLate && (
-                  <span className="badge bg-warning text-dark ms-2">Late</span>
+                  <Badge variant="warning" className="ml-2">Late</Badge>
                 )}
               </div>
             )}
           </div>
         )}
-      </div>
+      </CardContent>
 
       {/* Card Footer */}
-      <div className="card-footer bg-transparent border-top-0">
-        <Link
-          href={`/student/assignments/${assignment.id}`}
-          className="btn btn-outline-primary w-100"
-        >
-          {assignment.isPending
-            ? 'Start Assignment'
-            : assignment.isGraded
-              ? 'View Feedback'
-              : 'View Submission'}
-        </Link>
-      </div>
-    </div>
+      <CardFooter className="pt-4">
+        <Button asChild className="w-full" variant={assignment.isPending ? 'default' : 'outline'}>
+          <Link href={`/student/assignments/${assignment.id}`}>
+            {assignment.isPending
+              ? 'Start Assignment'
+              : assignment.isGraded
+                ? 'View Feedback'
+                : 'View Submission'}
+          </Link>
+        </Button>
+      </CardFooter>
+    </Card>
   )
 }

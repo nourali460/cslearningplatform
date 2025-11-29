@@ -1,13 +1,26 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { FileText, AlertTriangle, Loader2 } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Card, CardContent } from '@/components/ui/card'
 
 type Props = {
   classId: string
   assessment?: any // For editing existing assessment
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (newAssessment?: any) => Promise<void>
 }
 
 export function CreateAssessmentModal({ classId, assessment, onClose, onSuccess }: Props) {
@@ -24,6 +37,7 @@ export function CreateAssessmentModal({ classId, assessment, onClose, onSuccess 
     maxAttempts: assessment?.maxAttempts || 1,
     orderIndex: assessment?.orderIndex || null,
     rubricId: assessment?.rubricId || '',
+    isPublished: assessment?.isPublished !== undefined ? assessment.isPublished : true,
   })
 
   const [rubrics, setRubrics] = useState<any[]>([])
@@ -60,7 +74,13 @@ export function CreateAssessmentModal({ classId, assessment, onClose, onSuccess 
       })
 
       if (response.ok) {
-        onSuccess()
+        const result = await response.json()
+        console.log('[CreateAssessmentModal] Created/Updated assessment:', result.assessment)
+
+        // Pass the newly created/updated assessment to parent for optimistic update
+        await onSuccess(result.assessment)
+
+        // Close modal
         onClose()
       } else {
         const error = await response.json()
@@ -75,224 +95,253 @@ export function CreateAssessmentModal({ classId, assessment, onClose, onSuccess 
   }
 
   return (
-    <div
-      className="modal show d-block"
-      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-      onClick={onClose}
-    >
-      <div className="modal-dialog modal-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-content">
-          <div className="modal-header bg-primary text-white">
-            <h5 className="modal-title">
-              {isEditing ? 'Edit Assessment' : 'Create New Assessment'}
-            </h5>
-            <button
-              type="button"
-              className="btn-close btn-close-white"
-              onClick={onClose}
-            ></button>
-          </div>
-          <form onSubmit={handleSubmit}>
-            <div className="modal-body">
-              <div className="row g-3">
-                {/* Title */}
-                <div className="col-12">
-                  <label className="form-label fw-semibold">
-                    Title <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    required
-                    placeholder="e.g., Lab 1: Binary Search Implementation"
-                  />
-                </div>
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <FileText className="h-5 w-5" />
+            {isEditing ? 'Edit Assessment' : 'Create New Assessment'}
+          </DialogTitle>
+          <DialogDescription>
+            {isEditing ? 'Update the assessment details below' : 'Fill in the details to create a new assessment'}
+          </DialogDescription>
+        </DialogHeader>
 
-                {/* Description */}
-                <div className="col-12">
-                  <label className="form-label fw-semibold">Description</label>
-                  <textarea
-                    className="form-control"
-                    rows={3}
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Describe the assessment objectives and requirements..."
-                  />
-                </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            {/* Title */}
+            <div>
+              <label className="text-sm font-semibold mb-2 block">
+                Title <span className="text-error">*</span>
+              </label>
+              <Input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                required
+                placeholder="e.g., Lab 1: Binary Search Implementation"
+              />
+            </div>
 
-                {/* Assessment Type */}
-                <div className="col-md-6">
-                  <label className="form-label fw-semibold">
-                    Assessment Type <span className="text-danger">*</span>
-                  </label>
-                  <select
-                    className="form-select"
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    required
-                  >
-                    <option value="INTERACTIVE_LESSON">📖 Interactive Lesson</option>
-                    <option value="LAB">🧪 Lab</option>
-                    <option value="EXAM">📝 Exam</option>
-                    <option value="QUIZ">❓ Quiz</option>
-                    <option value="DISCUSSION">💬 Discussion</option>
-                  </select>
-                </div>
+            {/* Description */}
+            <div>
+              <label className="text-sm font-semibold mb-2 block">Description</label>
+              <Textarea
+                rows={3}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Describe the assessment objectives and requirements..."
+              />
+            </div>
 
-                {/* Submission Type */}
-                <div className="col-md-6">
-                  <label className="form-label fw-semibold">
-                    Submission Type <span className="text-danger">*</span>
-                  </label>
-                  <select
-                    className="form-select"
-                    value={formData.submissionType}
-                    onChange={(e) =>
-                      setFormData({ ...formData, submissionType: e.target.value })
-                    }
-                    required
-                  >
-                    <option value="BOTH">📄 Text & Files</option>
-                    <option value="TEXT">📝 Text Only</option>
-                    <option value="FILE">📁 Files Only</option>
-                    <option value="NONE">❌ No Submission Required</option>
-                  </select>
-                </div>
-
-                {/* Max Points */}
-                <div className="col-md-6">
-                  <label className="form-label fw-semibold">
-                    Max Points <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={formData.maxPoints}
-                    onChange={(e) =>
-                      setFormData({ ...formData, maxPoints: parseFloat(e.target.value) || 0 })
-                    }
-                    required
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-
-                {/* Due Date */}
-                <div className="col-md-6">
-                  <label className="form-label fw-semibold">Due Date & Time</label>
-                  <input
-                    type="datetime-local"
-                    className="form-control"
-                    value={formData.dueAt}
-                    onChange={(e) => setFormData({ ...formData, dueAt: e.target.value })}
-                  />
-                </div>
-
-                {/* Multiple Attempts */}
-                <div className="col-12">
-                  <div className="form-check">
-                    <input
-                      type="checkbox"
-                      className="form-check-input"
-                      id="allowMultipleAttempts"
-                      checked={formData.allowMultipleAttempts}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          allowMultipleAttempts: e.target.checked,
-                        })
-                      }
-                    />
-                    <label className="form-check-label" htmlFor="allowMultipleAttempts">
-                      Allow Multiple Attempts
-                    </label>
-                  </div>
-                </div>
-
-                {/* Max Attempts */}
-                {formData.allowMultipleAttempts && (
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">Max Attempts</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      value={formData.maxAttempts}
-                      onChange={(e) =>
-                        setFormData({ ...formData, maxAttempts: parseInt(e.target.value) || 1 })
-                      }
-                      min="1"
-                    />
-                  </div>
-                )}
-
-                {/* Order Index */}
-                <div className="col-md-6">
-                  <label className="form-label fw-semibold">
-                    Order Index
-                    <small className="text-muted ms-2">(for sorting)</small>
-                  </label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={formData.orderIndex || ''}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        orderIndex: e.target.value ? parseInt(e.target.value) : null,
-                      })
-                    }
-                    placeholder="Optional"
-                  />
-                </div>
-
-                {/* Rubric (if available) */}
-                {rubrics.length > 0 && (
-                  <div className="col-12">
-                    <label className="form-label fw-semibold">Grading Rubric (Optional)</label>
-                    <select
-                      className="form-select"
-                      value={formData.rubricId}
-                      onChange={(e) => setFormData({ ...formData, rubricId: e.target.value })}
-                    >
-                      <option value="">No Rubric</option>
-                      {rubrics.map((rubric) => (
-                        <option key={rubric.id} value={rubric.id}>
-                          {rubric.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+            {/* Assessment Type and Submission Type */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Assessment Type */}
+              <div>
+                <label className="text-sm font-semibold mb-2 block">
+                  Assessment Type <span className="text-error">*</span>
+                </label>
+                <Select value={formData.type} onValueChange={(val) => setFormData({ ...formData, type: val })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INTERACTIVE_LESSON">📖 Interactive Lesson</SelectItem>
+                    <SelectItem value="LAB">🧪 Lab</SelectItem>
+                    <SelectItem value="EXAM">📝 Exam</SelectItem>
+                    <SelectItem value="QUIZ">❓ Quiz</SelectItem>
+                    <SelectItem value="DISCUSSION">💬 Discussion</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              {isEditing && assessment._count?.submissions > 0 && (
-                <div className="alert alert-warning mt-3 mb-0">
-                  <i className="bi bi-exclamation-triangle me-2"></i>
+              {/* Submission Type */}
+              <div>
+                <label className="text-sm font-semibold mb-2 block">
+                  Submission Type <span className="text-error">*</span>
+                </label>
+                <Select value={formData.submissionType} onValueChange={(val) => setFormData({ ...formData, submissionType: val })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BOTH">📄 Text & Files</SelectItem>
+                    <SelectItem value="TEXT">📝 Text Only</SelectItem>
+                    <SelectItem value="FILE">📁 Files Only</SelectItem>
+                    <SelectItem value="NONE">❌ No Submission Required</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Max Points and Due Date */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Max Points */}
+              <div>
+                <label className="text-sm font-semibold mb-2 block">
+                  Max Points <span className="text-error">*</span>
+                </label>
+                <Input
+                  type="number"
+                  value={formData.maxPoints}
+                  onChange={(e) =>
+                    setFormData({ ...formData, maxPoints: parseFloat(e.target.value) || 0 })
+                  }
+                  required
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+
+              {/* Due Date */}
+              <div>
+                <label className="text-sm font-semibold mb-2 block">Due Date & Time</label>
+                <Input
+                  type="datetime-local"
+                  value={formData.dueAt}
+                  onChange={(e) => setFormData({ ...formData, dueAt: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Multiple Attempts */}
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="allowMultipleAttempts"
+                checked={formData.allowMultipleAttempts}
+                onCheckedChange={(checked) =>
+                  setFormData({
+                    ...formData,
+                    allowMultipleAttempts: checked === true,
+                  })
+                }
+              />
+              <label
+                htmlFor="allowMultipleAttempts"
+                className="text-sm font-medium cursor-pointer"
+              >
+                Allow Multiple Attempts
+              </label>
+            </div>
+
+            {/* Max Attempts */}
+            {formData.allowMultipleAttempts && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-semibold mb-2 block">Max Attempts</label>
+                  <Input
+                    type="number"
+                    value={formData.maxAttempts}
+                    onChange={(e) =>
+                      setFormData({ ...formData, maxAttempts: parseInt(e.target.value) || 1 })
+                    }
+                    min="1"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Order Index */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-semibold mb-2 block">
+                  Order Index
+                  <span className="text-muted-foreground text-xs ml-2">(for sorting)</span>
+                </label>
+                <Input
+                  type="number"
+                  value={formData.orderIndex || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      orderIndex: e.target.value ? parseInt(e.target.value) : null,
+                    })
+                  }
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
+
+            {/* Rubric (if available) */}
+            {rubrics.length > 0 && (
+              <div>
+                <label className="text-sm font-semibold mb-2 block">Grading Rubric (Optional)</label>
+                <Select value={formData.rubricId} onValueChange={(val) => setFormData({ ...formData, rubricId: val })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="No Rubric" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Rubric</SelectItem>
+                    {rubrics.map((rubric) => (
+                      <SelectItem key={rubric.id} value={rubric.id}>
+                        {rubric.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Publish Status */}
+            <div className="border-t pt-4 mt-2">
+              <div className="flex items-start gap-3 p-3 bg-background-secondary/50 rounded-lg">
+                <Checkbox
+                  id="isPublished"
+                  checked={formData.isPublished}
+                  onCheckedChange={(checked) =>
+                    setFormData({
+                      ...formData,
+                      isPublished: checked === true,
+                    })
+                  }
+                />
+                <div className="flex-1">
+                  <label
+                    htmlFor="isPublished"
+                    className="text-sm font-medium cursor-pointer block mb-1"
+                  >
+                    Publish Assessment
+                  </label>
+                  <p className="text-xs text-foreground-secondary">
+                    {formData.isPublished
+                      ? '✓ Students will see this assessment once you add it to a module'
+                      : '⚠️ Assessment will remain hidden from students even after adding to modules'}
+                  </p>
+                </div>
+              </div>
+            </div>
+              </div>
+
+          {isEditing && assessment._count?.submissions > 0 && (
+            <Card className="border-l-4 border-l-warning bg-warning/10">
+              <CardContent className="flex items-center gap-2 py-3">
+                <AlertTriangle className="h-5 w-5 text-warning" />
+                <div className="text-sm">
                   <strong>Warning:</strong> This assessment has {assessment._count.submissions}{' '}
                   submission(s). Changes may affect existing submissions.
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+            <Button type="button" variant="default" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>{isEditing ? 'Update Assessment' : 'Create Assessment'}</>
               )}
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={onClose}>
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2"></span>
-                    Saving...
-                  </>
-                ) : (
-                  <>{isEditing ? 'Update Assessment' : 'Create Assessment'}</>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

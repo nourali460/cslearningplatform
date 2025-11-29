@@ -1,3 +1,3 @@
-SELECT id, "clerkId", email, "fullName", role, "createdAt"
+SELECT id, email, password, "fullName", role, "isApproved", "createdAt"
 FROM users
-WHERE "clerkId" = 'user_35rVge67RtsAqrA0Vl4JC6F9dOW';
+WHERE email = 'subscriptionsnova@gmail.com';

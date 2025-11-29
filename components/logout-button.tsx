@@ -2,17 +2,23 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { LogOut } from 'lucide-react'
 
 export function LogoutButton() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
   const handleLogout = async () => {
+    console.log('Logout button clicked!')
     setIsLoading(true)
     try {
-      await fetch('/api/auth/logout', {
+      console.log('Calling logout API...')
+      const response = await fetch('/api/auth/logout', {
         method: 'POST',
       })
+      console.log('Logout response:', response.status)
+      console.log('Redirecting to sign-in...')
       router.push('/sign-in')
     } catch (error) {
       console.error('Logout error:', error)
@@ -21,13 +27,15 @@ export function LogoutButton() {
   }
 
   return (
-    <button
+    <Button
+      type="button"
       onClick={handleLogout}
       disabled={isLoading}
-      className="btn btn-outline-light w-100 d-flex align-items-center justify-content-center"
+      variant="outline"
+      className="w-full"
     >
-      <span className="me-2">🚪</span>
+      <LogOut className="mr-2 h-4 w-4" />
       {isLoading ? 'Signing out...' : 'Sign Out'}
-    </button>
+    </Button>
   )
 }

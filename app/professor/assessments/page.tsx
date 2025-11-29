@@ -1,9 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Edit, Trash2, Copy, Eye, FileText } from 'lucide-react'
+import { Plus, Edit, Trash2, Copy, Eye, FileText, BookOpen, Loader2 } from 'lucide-react'
 import { AssessmentTypeIcon, AssessmentTypeBadge } from '@/components/student/AssessmentTypeIcon'
 import { CreateAssessmentModal } from '@/components/professor/CreateAssessmentModal'
+import { AssessmentTemplateLibrary } from '@/components/professor/AssessmentTemplateLibrary'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 type Assessment = {
   id: string
@@ -20,6 +26,18 @@ type Assessment = {
     averageScore: number | null
   }
   rubric: any | null
+  _count?: {
+    submissions: number
+    moduleItems: number
+  }
+  moduleItems?: Array<{
+    id: string
+    module: {
+      id: string
+      title: string
+      isPublished: boolean
+    }
+  }>
 }
 
 type Class = {
@@ -27,6 +45,7 @@ type Class = {
   classCode: string
   title: string
   course: {
+    id: string
     code: string
     title: string
   }
@@ -39,6 +58,7 @@ export default function AssessmentsPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingAssessment, setEditingAssessment] = useState<Assessment | null>(null)
+  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false)
 
   useEffect(() => {
     fetchClasses()
@@ -94,7 +114,7 @@ export default function AssessmentsPage() {
 
       if (response.ok) {
         alert('Assessment deleted successfully')
-        fetchAssessments()
+        await fetchAssessments()
       } else {
         const error = await response.json()
         alert(error.error || 'Failed to delete assessment')
@@ -113,7 +133,7 @@ export default function AssessmentsPage() {
 
       if (response.ok) {
         alert('Assessment duplicated successfully')
-        fetchAssessments()
+        await fetchAssessments()
       } else {
         alert('Failed to duplicate assessment')
       }
@@ -160,201 +180,224 @@ export default function AssessmentsPage() {
 
   if (loading && classes.length === 0) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '50vh' }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-accent-orange" />
       </div>
     )
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-4">
-        <h1 className="display-5 fw-bold text-primary mb-2">📋 Assessments</h1>
-        <p className="text-muted lead">Create and manage assignments for your classes</p>
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground mb-2">Assessments</h1>
+        <p className="text-foreground-secondary">Create and manage assignments for your classes</p>
       </div>
 
       {/* Class Selector */}
-      <div className="card border-0 shadow-sm mb-4">
-        <div className="card-body">
-          <div className="row align-items-center">
-            <div className="col-md-6">
-              <label className="form-label fw-semibold">Select Class</label>
-              <select
-                className="form-select form-select-lg"
-                value={selectedClassId}
-                onChange={(e) => setSelectedClassId(e.target.value)}
-              >
-                {classes.map((classItem) => (
-                  <option key={classItem.id} value={classItem.id}>
-                    {classItem.classCode} - {classItem.course.title}
-                  </option>
-                ))}
-              </select>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Select Class</label>
+              <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose a class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((classItem) => (
+                    <SelectItem key={classItem.id} value={classItem.id}>
+                      {classItem.classCode} - {classItem.course.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="col-md-6 text-end">
-              <button
-                className="btn btn-primary btn-lg"
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowTemplateLibrary(true)}
+                disabled={!selectedClassId}
+              >
+                <BookOpen className="mr-2 h-4 w-4" />
+                Add from Library
+              </Button>
+              <Button
                 onClick={handleCreate}
                 disabled={!selectedClassId}
               >
-                <Plus size={20} className="me-2" />
-                Create Assessment
-              </button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Custom
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {selectedClass && (
         <>
           {/* Statistics Cards */}
-          <div className="row g-4 mb-4">
-            <div className="col-md-4">
-              <div className="card border-0 shadow-sm h-100" style={{ borderLeft: '4px solid #0d6efd' }}>
-                <div className="card-body">
-                  <h6 className="card-subtitle text-muted mb-2 small">Total Assessments</h6>
-                  <h2 className="card-title mb-0">{totalAssessments}</h2>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-4">
-              <div className="card border-0 shadow-sm h-100" style={{ borderLeft: '4px solid #ffc107' }}>
-                <div className="card-body">
-                  <h6 className="card-subtitle text-muted mb-2 small">Pending Submissions</h6>
-                  <h2 className="card-title mb-0">{totalPending}</h2>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-4">
-              <div className="card border-0 shadow-sm h-100" style={{ borderLeft: '4px solid #198754' }}>
-                <div className="card-body">
-                  <h6 className="card-subtitle text-muted mb-2 small">Completion Rate</h6>
-                  <h2 className="card-title mb-0">{avgCompletion.toFixed(0)}%</h2>
-                </div>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="border-l-4 border-l-accent-purple">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-foreground-secondary">
+                  Total Assessments
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-foreground">{totalAssessments}</div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-accent-orange">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-foreground-secondary">
+                  Pending Submissions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-foreground">{totalPending}</div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-success">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-foreground-secondary">
+                  Completion Rate
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-foreground">{avgCompletion.toFixed(0)}%</div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Assessments by Type */}
           {assessments.length === 0 ? (
-            <div className="card border-0 shadow-sm">
-              <div className="card-body text-center py-5">
-                <FileText size={64} className="text-muted mb-3" />
-                <h3 className="h5 text-muted">No Assessments Yet</h3>
-                <p className="text-muted mb-3">
+            <Card>
+              <CardContent className="text-center py-12">
+                <FileText size={64} className="text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">No Assessments Yet</h3>
+                <p className="text-muted-foreground mb-6">
                   Create your first assessment for {selectedClass.course.title}
                 </p>
-                <button className="btn btn-primary" onClick={handleCreate}>
-                  <Plus size={18} className="me-2" />
+                <Button onClick={handleCreate}>
+                  <Plus className="mr-2 h-4 w-4" />
                   Create Assessment
-                </button>
-              </div>
-            </div>
+                </Button>
+              </CardContent>
+            </Card>
           ) : (
             Object.entries(assessmentsByType).map(([type, typeAssessments]) => (
-              <div key={type} className="card border-0 shadow-sm mb-4">
-                <div className="card-header bg-white border-bottom">
-                  <h5 className="card-title mb-0 fw-bold d-flex align-items-center">
+              <Card key={type} className="mb-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
                     <AssessmentTypeIcon type={type as any} size={24} />
-                    <span className="ms-2">{type.replace('_', ' ')}</span>
-                    <span className="badge bg-secondary ms-2">{typeAssessments.length}</span>
-                  </h5>
-                </div>
-                <div className="card-body p-0">
-                  <div className="table-responsive">
-                    <table className="table table-hover mb-0">
-                      <thead className="bg-light">
-                        <tr>
-                          <th className="py-3">Title</th>
-                          <th className="py-3">Due Date</th>
-                          <th className="py-3 text-center">Points</th>
-                          <th className="py-3 text-center">Submissions</th>
-                          <th className="py-3 text-center">Graded</th>
-                          <th className="py-3 text-center">Pending</th>
-                          <th className="py-3 text-center">Avg Score</th>
-                          <th className="py-3 text-end">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {typeAssessments.map((assessment) => (
-                          <tr key={assessment.id}>
-                            <td className="py-3">
-                              <div className="fw-semibold">{assessment.title}</div>
+                    <span>{type.replace('_', ' ')}</span>
+                    <Badge>{typeAssessments.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead className="text-center">Points</TableHead>
+                        <TableHead className="text-center">Submissions</TableHead>
+                        <TableHead className="text-center">Graded</TableHead>
+                        <TableHead className="text-center">Pending</TableHead>
+                        <TableHead className="text-center">Avg Score</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {typeAssessments.map((assessment) => (
+                        <TableRow key={assessment.id}>
+                          <TableCell>
+                            <div className="font-semibold">{assessment.title}</div>
+                            <div className="flex items-center gap-2 mt-1">
                               {assessment.rubric && (
-                                <small className="text-muted">
-                                  <i className="bi bi-ui-checks me-1"></i>
+                                <span className="text-xs text-foreground-secondary">
                                   Has Rubric
-                                </small>
+                                </span>
                               )}
-                            </td>
-                            <td className="py-3">
-                              {assessment.dueAt ? (
-                                <small>
-                                  {new Date(assessment.dueAt).toLocaleDateString('en-US', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    year: 'numeric',
-                                  })}
-                                </small>
+                              {assessment._count?.moduleItems > 0 ? (
+                                <Badge variant="default" className="text-xs">
+                                  📚 In {assessment._count.moduleItems} module{assessment._count.moduleItems > 1 ? 's' : ''}
+                                </Badge>
                               ) : (
-                                <small className="text-muted">No due date</small>
+                                <Badge variant="warning" className="text-xs">
+                                  ⚠️ Not in any module
+                                </Badge>
                               )}
-                            </td>
-                            <td className="py-3 text-center">
-                              <span className="badge bg-info">{assessment.maxPoints}</span>
-                            </td>
-                            <td className="py-3 text-center">{assessment.stats.totalSubmissions}</td>
-                            <td className="py-3 text-center">
-                              <span className="badge bg-success">{assessment.stats.gradedSubmissions}</span>
-                            </td>
-                            <td className="py-3 text-center">
-                              <span className="badge bg-warning text-dark">
-                                {assessment.stats.pendingSubmissions}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {assessment.dueAt ? (
+                              <span className="text-sm">
+                                {new Date(assessment.dueAt).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })}
                               </span>
-                            </td>
-                            <td className="py-3 text-center">
-                              {assessment.stats.averageScore !== null
-                                ? `${assessment.stats.averageScore.toFixed(1)}%`
-                                : '-'}
-                            </td>
-                            <td className="py-3 text-end">
-                              <div className="btn-group btn-group-sm">
-                                <button className="btn btn-outline-primary" title="View Submissions">
-                                  <Eye size={14} />
-                                </button>
-                                <button
-                                  className="btn btn-outline-secondary"
-                                  title="Edit"
-                                  onClick={() => handleEdit(assessment)}
-                                >
-                                  <Edit size={14} />
-                                </button>
-                                <button
-                                  className="btn btn-outline-info"
-                                  title="Duplicate"
-                                  onClick={() => handleDuplicate(assessment.id)}
-                                >
-                                  <Copy size={14} />
-                                </button>
-                                <button
-                                  className="btn btn-outline-danger"
-                                  title="Delete"
-                                  onClick={() => handleDelete(assessment.id)}
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">No due date</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="info">{assessment.maxPoints}</Badge>
+                          </TableCell>
+                          <TableCell className="text-center">{assessment.stats.totalSubmissions}</TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="success">{assessment.stats.gradedSubmissions}</Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="warning">{assessment.stats.pendingSubmissions}</Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {assessment.stats.averageScore !== null
+                              ? `${assessment.stats.averageScore.toFixed(1)}%`
+                              : '-'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button variant="outline" size="sm" title="View Submissions">
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                title="Edit"
+                                onClick={() => handleEdit(assessment)}
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                title="Duplicate"
+                                onClick={() => handleDuplicate(assessment.id)}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                title="Delete"
+                                onClick={() => handleDelete(assessment.id)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
             ))
           )}
         </>
@@ -367,6 +410,20 @@ export default function AssessmentsPage() {
           assessment={editingAssessment}
           onClose={handleModalClose}
           onSuccess={fetchAssessments}
+        />
+      )}
+
+      {/* Template Library Modal */}
+      {showTemplateLibrary && selectedClassId && selectedClass && (
+        <AssessmentTemplateLibrary
+          classId={selectedClassId}
+          courseId={selectedClass.course.id}
+          className={`${selectedClass.classCode} - ${selectedClass.course.title}`}
+          onClose={() => setShowTemplateLibrary(false)}
+          onAssessmentAdded={async () => {
+            setShowTemplateLibrary(false)
+            await fetchAssessments()
+          }}
         />
       )}
     </div>

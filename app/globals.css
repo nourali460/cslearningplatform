@@ -1,121 +1,353 @@
-/* Bootstrap CSS */
-@import "bootstrap/dist/css/bootstrap.min.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* Custom Blue Theme */
-:root {
-  --primary-blue: #0d6efd;
-  --primary-blue-dark: #0a58ca;
-  --primary-blue-light: #6ea8fe;
-  --accent-blue: #0dcaf0;
-  --dark-blue: #084298;
-  --light-blue: #cfe2ff;
-  --background: #f8f9fa;
-  --foreground: #212529;
-  --sidebar-bg: #ffffff;
-  --card-bg: #ffffff;
-  --border-color: #dee2e6;
+/* Claude.ai Design System */
+@layer base {
+  :root {
+    /* Backgrounds - Cream/Beige tones like claude.ai */
+    --background: 250 250 248; /* #FAFAF8 */
+    --background-secondary: 245 245 240; /* #F5F5F0 */
+    --background-tertiary: 255 255 255; /* #FFFFFF */
+
+    /* Text colors - Dark grays */
+    --foreground: 26 26 26; /* #1A1A1A */
+    --foreground-secondary: 82 82 82; /* #525252 */
+    --foreground-tertiary: 115 115 115; /* #737373 */
+
+    /* Borders - Subtle */
+    --border: 229 229 224; /* #E5E5E0 */
+    --border-secondary: 212 212 212; /* #D4D4D4 */
+
+    /* Accents - Orange and Purple like claude.ai */
+    --accent-orange: 232 124 73; /* #E87C49 */
+    --accent-orange-hover: 220 100 55; /* #DC6437 */
+    --accent-purple: 139 92 246; /* #8B5CF6 */
+    --accent-purple-hover: 124 58 237; /* #7C3AED */
+
+    /* State colors */
+    --success: 34 197 94; /* #22C55E */
+    --warning: 251 146 60; /* #FB923C */
+    --error: 239 68 68; /* #EF4444 */
+    --info: 59 130 246; /* #3B82F6 */
+
+    /* Semantic */
+    --card-bg: 255 255 255;
+    --input-bg: 255 255 255;
+    --hover-bg: 245 245 240;
+    --selected-bg: 240 240 235;
+
+    /* Shadows - Very subtle */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Typography Hierarchy - Claude.ai style */
+  h1 {
+    @apply text-4xl font-semibold tracking-tight text-foreground;
+  }
+
+  h2 {
+    @apply text-3xl font-semibold tracking-tight text-foreground;
+  }
+
+  h3 {
+    @apply text-2xl font-semibold tracking-tight text-foreground;
+  }
+
+  h4 {
+    @apply text-xl font-semibold text-foreground;
+  }
+
+  h5 {
+    @apply text-lg font-semibold text-foreground;
+  }
+
+  h6 {
+    @apply text-base font-semibold text-foreground;
+  }
+
+  p {
+    @apply text-base text-foreground-secondary leading-relaxed;
+  }
+
+  /* Links */
+  a {
+    @apply text-foreground transition-colors hover:text-accent-orange;
+  }
+
+  /* Scrollbar - Minimal like claude.ai */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--border-secondary));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--foreground-tertiary));
+  }
+
+  /* Selection */
+  ::selection {
+    background: rgb(var(--accent-orange) / 0.2);
+    color: rgb(var(--foreground));
+  }
 }
 
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+@layer components {
+  /* Container utility - Claude.ai style max widths */
+  .container-claude {
+    @apply mx-auto px-4 sm:px-6 lg:px-8;
+    max-width: 1280px;
+  }
+
+  .container-narrow {
+    @apply mx-auto px-4 sm:px-6;
+    max-width: 800px;
+  }
+
+  /* Card component - Minimal borders, no shadows */
+  .card-minimal {
+    @apply bg-white border border-border rounded-xl p-6 transition-colors hover:border-border-secondary;
+  }
+
+  /* Button base styles - Will be enhanced with CVA */
+  .btn-base {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  /* Input base styles */
+  .input-base {
+    @apply w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-foreground-tertiary transition-colors focus:border-accent-orange focus:outline-none focus:ring-2 focus:ring-accent-orange/20 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Backdrop blur for modals */
+  .backdrop-blur-modal {
+    @apply fixed inset-0 z-50 bg-black/20 backdrop-blur-sm;
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    @apply transition-all duration-200 ease-in-out;
+  }
 }
 
-/* Custom Bootstrap Overrides for Blue Theme */
-.btn-primary {
-  background-color: var(--primary-blue);
-  border-color: var(--primary-blue);
+@layer utilities {
+  /* Text colors */
+  .text-foreground {
+    color: rgb(var(--foreground));
+  }
+
+  .text-foreground-secondary {
+    color: rgb(var(--foreground-secondary));
+  }
+
+  .text-foreground-tertiary {
+    color: rgb(var(--foreground-tertiary));
+  }
+
+  /* Background colors */
+  .bg-background {
+    background-color: rgb(var(--background));
+  }
+
+  .bg-background-secondary {
+    background-color: rgb(var(--background-secondary));
+  }
+
+  .bg-card {
+    background-color: rgb(var(--card-bg));
+  }
+
+  /* Border colors */
+  .border-border {
+    border-color: rgb(var(--border));
+  }
+
+  .border-border-secondary {
+    border-color: rgb(var(--border-secondary));
+  }
+
+  /* Accent colors */
+  .text-accent-orange {
+    color: rgb(var(--accent-orange));
+  }
+
+  .bg-accent-orange {
+    background-color: rgb(var(--accent-orange));
+  }
+
+  .hover\:bg-accent-orange-hover:hover {
+    background-color: rgb(var(--accent-orange-hover));
+  }
+
+  .text-accent-purple {
+    color: rgb(var(--accent-purple));
+  }
+
+  .bg-accent-purple {
+    background-color: rgb(var(--accent-purple));
+  }
+
+  /* State colors */
+  .text-success {
+    color: rgb(var(--success));
+  }
+
+  .text-warning {
+    color: rgb(var(--warning));
+  }
+
+  .text-error {
+    color: rgb(var(--error));
+  }
+
+  .border-error {
+    border-color: rgb(var(--error));
+  }
+
+  /* Hover backgrounds */
+  .hover\:bg-hover:hover {
+    background-color: rgb(var(--hover-bg));
+  }
+
+  /* Focus states - Claude.ai style */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-accent-orange/20 focus:border-accent-orange;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-md;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-accent-orange to-accent-purple bg-clip-text text-transparent;
+  }
 }
 
-.btn-primary:hover {
-  background-color: var(--primary-blue-dark);
-  border-color: var(--primary-blue-dark);
+/* Animation keyframes */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-.table-hover tbody tr:hover {
-  background-color: var(--light-blue);
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Scrollable Table Container */
-.table-scroll {
-  overflow-x: auto;
-  overflow-y: visible;
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.table-scroll thead th {
-  background-color: var(--primary-blue);
-  color: white;
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
 }
 
-/* Bootstrap Tab Pane Fix - Ensure proper visibility */
-.tab-content > .tab-pane {
-  display: none !important;
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
 }
 
-.tab-content > .tab-pane.active {
-  display: block !important;
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out;
 }
 
-.tab-content > .tab-pane.fade {
-  opacity: 0;
-  transition: opacity 0.15s linear;
-}
+/* SafeHTML Rich Text Content Styling */
+@layer components {
+  .safe-html-content ul {
+    @apply list-disc pl-6 my-2;
+  }
 
-.tab-content > .tab-pane.fade.show {
-  opacity: 1;
-}
+  .safe-html-content ol {
+    @apply list-decimal pl-6 my-2;
+  }
 
-/* Card Styles */
-.card {
-  border: 1px solid var(--border-color);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
-}
+  .safe-html-content li {
+    @apply my-1;
+  }
 
-.card:hover {
-  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
-}
+  .safe-html-content h1 {
+    @apply text-2xl font-bold my-4;
+  }
 
-.card.hover-shadow {
-  transition: all 0.3s ease;
-}
+  .safe-html-content h2 {
+    @apply text-xl font-bold my-3;
+  }
 
-.card.hover-shadow:hover {
-  box-shadow: 0 8px 20px rgba(13, 110, 253, 0.2);
-  transform: translateY(-4px);
-}
+  .safe-html-content p {
+    @apply my-2;
+  }
 
-/* Sidebar Styles */
-.admin-sidebar,
-.student-sidebar,
-.professor-sidebar {
-  background: linear-gradient(180deg, #0d6efd 0%, #084298 100%);
-  min-height: 100vh;
-  color: white;
-}
+  .safe-html-content blockquote {
+    @apply border-l-4 border-border-secondary pl-4 italic my-2 text-foreground-secondary;
+  }
 
-.admin-sidebar .nav-link,
-.student-sidebar .nav-link,
-.professor-sidebar .nav-link {
-  color: rgba(255, 255, 255, 0.85);
-  padding: 0.75rem 1.25rem;
-  border-radius: 0.375rem;
-  margin-bottom: 0.25rem;
-  transition: all 0.2s;
-}
+  .safe-html-content code {
+    @apply bg-background-secondary px-1.5 py-0.5 rounded text-sm font-mono;
+  }
 
-.admin-sidebar .nav-link:hover,
-.student-sidebar .nav-link:hover,
-.professor-sidebar .nav-link:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: white;
-}
+  .safe-html-content pre {
+    @apply bg-background-secondary p-4 rounded-lg my-2 overflow-x-auto;
+  }
 
-.admin-sidebar .nav-link.active,
-.student-sidebar .nav-link.active,
-.professor-sidebar .nav-link.active {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
-  font-weight: 600;
+  .safe-html-content pre code {
+    @apply bg-transparent p-0;
+  }
+
+  .safe-html-content a {
+    @apply text-accent-purple underline cursor-pointer hover:text-accent-purple/80 transition-colors;
+  }
+
+  .safe-html-content img {
+    @apply max-w-full h-auto rounded-lg my-2;
+  }
+
+  .safe-html-content strong {
+    @apply font-bold;
+  }
+
+  .safe-html-content em {
+    @apply italic;
+  }
+
+  .safe-html-content u {
+    @apply underline;
+  }
 }

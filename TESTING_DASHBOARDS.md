@@ -52,7 +52,7 @@ This creates:
 
 **Admin Dashboard:**
 - URL: `http://localhost:3000/admin`
-- Login with admin account: `subscriptionnova@gmail.com`
+- Login with admin account: `subscriptionsnova@gmail.com` / `admin123`
 - Shows:
   - User counts by role (admin/professor/student)
   - Total courses, classes, enrollments, assessments

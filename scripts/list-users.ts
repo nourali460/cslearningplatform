@@ -20,8 +20,7 @@ async function listUsers() {
     users.forEach((user, index) => {
       console.log(`\n${index + 1}. ${user.role.toUpperCase()} - ${user.fullName || 'No name'}`)
       console.log(`   Email: ${user.email}`)
-      console.log(`   Clerk ID: ${user.clerkId}`)
-      console.log(`   Username: ${user.username || 'Not set'}`)
+      console.log(`   School ID: ${user.usernameSchoolId || 'Not set'}`)
       console.log(`   Approved: ${user.isApproved ? 'Yes' : 'No'}`)
       console.log(`   Created: ${user.createdAt.toLocaleString()}`)
     })
@@ -39,8 +38,8 @@ async function listUsers() {
       console.log('\n🔑 ADMIN LOGIN CREDENTIALS:')
       console.log('='.repeat(80))
       console.log(`Email: ${admin.email}`)
-      console.log(`Password: You set this when you created the Clerk account`)
-      console.log(`Note: Login at /auth/sign-in`)
+      console.log(`Password: Check ADMIN_CREDENTIALS.md`)
+      console.log(`Note: Login at /sign-in`)
       console.log('')
     }
 

@@ -9,15 +9,15 @@ export async function POST() {
 
     // Primary admin user configuration
     const PRIMARY_ADMIN = {
-      clerkId: 'user_35rVge67RtsAqrA0Vl4JC6F9dOW',
-      email: 'subscriptionnova@gmail.com',
+      email: 'subscriptionsnova@gmail.com',
+      password: 'admin123',
       fullName: 'Nour Ali',
       role: 'admin',
     }
 
     // Step 1: Ensure primary admin exists
     const existingAdmin = await prisma.user.findUnique({
-      where: { clerkId: PRIMARY_ADMIN.clerkId },
+      where: { email: PRIMARY_ADMIN.email },
     })
 
     if (!existingAdmin) {
@@ -34,22 +34,22 @@ export async function POST() {
     await prisma.class.deleteMany()
     await prisma.course.deleteMany()
     await prisma.user.deleteMany({
-      where: { clerkId: { not: PRIMARY_ADMIN.clerkId } },
+      where: { email: { not: PRIMARY_ADMIN.email } },
     })
     console.log('✅ Cleaned test data')
 
     // Step 3: Create test users
     // Create professors (including primary admin as professor for testing)
     const professorAdmin = await prisma.user.findUnique({
-      where: { clerkId: PRIMARY_ADMIN.clerkId },
+      where: { email: PRIMARY_ADMIN.email },
     })
 
     const professors = [
       professorAdmin!, // Use admin user as professor for testing
       await prisma.user.create({
         data: {
-          clerkId: 'clerk_prof1_placeholder',
           email: 'prof.smith@cslearning.edu',
+          password: 'password123',
           fullName: 'Dr. Sarah Smith',
           role: 'professor',
         },
@@ -61,16 +61,16 @@ export async function POST() {
       professorAdmin!, // Use admin user as student for testing
       await prisma.user.create({
         data: {
-          clerkId: 'clerk_student1_placeholder',
           email: 'alice.wonder@student.cslearning.edu',
+          password: 'password123',
           fullName: 'Alice Wonderland',
           role: 'student',
         },
       }),
       await prisma.user.create({
         data: {
-          clerkId: 'clerk_student2_placeholder',
           email: 'bob.builder@student.cslearning.edu',
+          password: 'password123',
           fullName: 'Bob Builder',
           role: 'student',
         },

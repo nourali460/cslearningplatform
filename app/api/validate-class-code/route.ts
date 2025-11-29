@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       valid: true,
       classId: classRecord.id,
-      className: `${classRecord.course.code} - ${classRecord.course.name}`,
+      className: `${classRecord.course.code} - ${classRecord.course.title}`,
       term: classRecord.term,
       year: classRecord.year,
       professor: classRecord.professor.fullName || classRecord.professor.email,

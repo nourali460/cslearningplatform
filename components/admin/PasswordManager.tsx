@@ -8,9 +8,10 @@ type PasswordManagerProps = {
   initialPassword: string
   userName: string
   userRole: 'student' | 'professor'
+  managerRole: 'admin' | 'professor' // Who is using this component
 }
 
-export function PasswordManager({ userId, initialPassword, userName, userRole }: PasswordManagerProps) {
+export function PasswordManager({ userId, initialPassword, userName, userRole, managerRole }: PasswordManagerProps) {
   const [password, setPassword] = useState(initialPassword)
   const [copied, setCopied] = useState(false)
   const [isRegenerating, setIsRegenerating] = useState(false)
@@ -28,7 +29,12 @@ export function PasswordManager({ userId, initialPassword, userName, userRole }:
 
     setIsRegenerating(true)
     try {
-      const response = await fetch('/api/admin/regenerate-password', {
+      // Use correct endpoint based on who is managing passwords
+      const endpoint = managerRole === 'admin'
+        ? '/api/admin/regenerate-password'
+        : '/api/professor/students/regenerate-password'
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),

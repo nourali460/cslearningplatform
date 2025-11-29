@@ -1,11 +1,12 @@
-INSERT INTO users (id, "clerkId", email, "fullName", role, "createdAt", "updatedAt")
+INSERT INTO users (id, email, password, "fullName", role, "isApproved", "createdAt", "updatedAt")
 VALUES (
   gen_random_uuid(),
-  'user_35rVge67RtsAqrA0Vl4JC6F9dOW',
-  'subscriptionnova@gmail.com',
+  'subscriptionsnova@gmail.com',
+  'admin123',
   'Nour Ali',
   'admin',
+  true,
   NOW(),
   NOW()
 )
-ON CONFLICT ("clerkId") DO NOTHING;
+ON CONFLICT (email) DO NOTHING;

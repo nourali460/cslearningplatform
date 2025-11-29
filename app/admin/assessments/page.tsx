@@ -6,6 +6,18 @@ import {
   type AdminFilters,
 } from '@/lib/admin-filters'
 import { AdminFilterBar } from '@/components/admin/AdminFilterBar'
+import { FileText, CheckCircle, Clock } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default async function AdminAssessmentsPage({
   searchParams,
@@ -95,214 +107,224 @@ export default async function AdminAssessmentsPage({
   const hasFilters = Object.keys(assessmentWhere).length > 0 || filters.studentId !== undefined || filters.assessmentId !== undefined
 
   return (
-    <div>
+    <div className="space-y-8">
       {/* Filter Bar */}
-      <div className="mb-4">
-        <AdminFilterBar
-          options={filterOptions}
-          availableFilters={{
-            showStudent: true,
-            showTerm: true,
-            showYear: true,
-            showProfessor: true,
-            showCourse: true,
-            showClass: true,
-            showAssessment: true,
-          }}
-        />
-      </div>
+      <AdminFilterBar
+        options={filterOptions}
+        availableFilters={{
+          showStudent: true,
+          showTerm: true,
+          showYear: true,
+          showProfessor: true,
+          showCourse: true,
+          showClass: true,
+          showAssessment: true,
+        }}
+      />
 
       {/* Header */}
-      <div className="mb-4">
-        <h1 className="display-5 fw-bold text-primary mb-2">📝 Assessments & Grades</h1>
-        <p className="text-muted lead">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground mb-2">
+          Assessments & Grades
+        </h1>
+        <p className="text-foreground-secondary">
           View assessments and grading statistics. Filters affect which class assessments are shown.
         </p>
       </div>
 
       {/* Tabs */}
-      <ul className="nav nav-pills mb-4" role="tablist">
-        <li className="nav-item" role="presentation">
-          <button className="nav-link active" id="assessments-tab" data-bs-toggle="pill" data-bs-target="#assessments" type="button" role="tab">
-            <span className="badge bg-primary me-2">{assessments.length}</span>
+      <Tabs defaultValue="assessments" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="assessments" className="gap-2">
+            <FileText className="h-4 w-4" />
             Assessments
-          </button>
-        </li>
-        <li className="nav-item" role="presentation">
-          <button className="nav-link" id="submissions-tab" data-bs-toggle="pill" data-bs-target="#submissions" type="button" role="tab">
+            <Badge variant="default" className="ml-1">
+              {assessments.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="submissions" className="gap-2">
+            <CheckCircle className="h-4 w-4" />
             Submissions & Grades
-          </button>
-        </li>
-      </ul>
+            <Badge variant="default" className="ml-1">
+              {submissions.length}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Tab Content */}
-      <div className="tab-content">
         {/* Assessments Tab */}
-        <div className="tab-pane fade show active" id="assessments" role="tabpanel">
-          <div className="card">
-            <div className="card-header bg-primary text-white">
-              <h5 className="card-title mb-1">Assessments</h5>
-              <p className="mb-0 small opacity-90">
+        <TabsContent value="assessments" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-accent-orange" />
+                Assessments
+              </CardTitle>
+              <CardDescription>
                 {hasFilters
                   ? 'Assessments from classes matching your filters'
                   : 'All assignments, labs, and exams across all classes'}
-              </p>
-            </div>
-            <div className="card-body p-0">
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
               {assessments.length === 0 ? (
-                <div className="text-center py-5 text-muted">
+                <div className="text-center py-12 text-foreground-tertiary">
                   <p className="mb-0">No assessments found matching the selected filters</p>
                 </div>
               ) : (
-                <div className="table-scroll">
-                  <table className="table table-hover mb-0">
-                    <thead>
-                      <tr>
-                        <th className="text-white">Title</th>
-                        <th className="text-white">Class</th>
-                        <th className="text-white">Professor</th>
-                        <th className="text-white">Due Date</th>
-                        <th className="text-white">Points</th>
-                        <th className="text-white">Submissions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {assessments.map((assessment) => (
-                        <tr key={assessment.id}>
-                          <td>
-                            <div className="fw-semibold">{assessment.title}</div>
-                            <div className="small text-muted">{assessment.slug}</div>
-                          </td>
-                          <td>
-                            <div className="fw-semibold">{assessment.class.course.code}</div>
-                            <div className="small text-muted">
-                              <code className="text-primary">{assessment.class.classCode}</code>
-                            </div>
-                          </td>
-                          <td className="small">
-                            {assessment.class.professor.fullName || 'N/A'}
-                          </td>
-                          <td className="small">
-                            {assessment.dueAt ? (
-                              <div>
-                                <div>{new Date(assessment.dueAt).toLocaleDateString()}</div>
-                                <div className="text-muted" style={{ fontSize: '0.75rem' }}>
-                                  {new Date(assessment.dueAt).toLocaleTimeString(
-                                    [],
-                                    {
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                    }
-                                  )}
-                                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Class</TableHead>
+                      <TableHead>Professor</TableHead>
+                      <TableHead>Due Date</TableHead>
+                      <TableHead className="text-right">Points</TableHead>
+                      <TableHead className="text-right">Submissions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {assessments.map((assessment) => (
+                      <TableRow key={assessment.id}>
+                        <TableCell>
+                          <div className="font-medium">{assessment.title}</div>
+                          <div className="text-sm text-foreground-tertiary">{assessment.slug}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">{assessment.class.course.code}</div>
+                          <div className="text-sm mt-1">
+                            <code className="text-xs font-mono font-semibold text-accent-orange bg-accent-orange/10 px-2 py-1 rounded-lg">
+                              {assessment.class.classCode}
+                            </code>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-foreground-secondary">
+                          {assessment.class.professor.fullName || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {assessment.dueAt ? (
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-3 w-3 text-foreground-tertiary" />
+                                <span>{new Date(assessment.dueAt).toLocaleDateString()}</span>
                               </div>
-                            ) : (
-                              <span className="text-muted">No due date</span>
-                            )}
-                          </td>
-                          <td>
-                            <span className="badge bg-primary bg-opacity-10 text-primary border border-primary">
-                              {assessment.maxPoints.toString()} pts
-                            </span>
-                          </td>
-                          <td className="small">
-                            <span className="badge bg-info">{assessment._count.submissions}</span> submissions
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                              <div className="text-xs text-foreground-tertiary ml-5">
+                                {new Date(assessment.dueAt).toLocaleTimeString(
+                                  [],
+                                  {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  }
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-foreground-tertiary">No due date</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="purple">
+                            {assessment.maxPoints.toString()} pts
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="info">
+                            {assessment._count.submissions}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
-            </div>
-          </div>
-        </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Submissions & Grades Tab */}
-        <div className="tab-pane fade" id="submissions" role="tabpanel">
-          <div className="card">
-            <div className="card-header bg-primary text-white">
-              <h5 className="card-title mb-1">Submissions & Grades</h5>
-              <p className="mb-0 small opacity-90">
+        <TabsContent value="submissions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-accent-purple" />
+                Submissions & Grades
+              </CardTitle>
+              <CardDescription>
                 Individual student submissions and grades
                 {hasFilters && ' (filtered)'}
-              </p>
-            </div>
-            <div className="card-body p-0">
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
               {submissions.length === 0 ? (
-                <div className="text-center py-5 text-muted">
+                <div className="text-center py-12 text-foreground-tertiary">
                   <p className="mb-0">No submissions found matching the selected filters</p>
                 </div>
               ) : (
-                <div className="table-scroll">
-                  <table className="table table-hover mb-0">
-                    <thead>
-                      <tr>
-                        <th className="text-white">Student</th>
-                        <th className="text-white">Assessment</th>
-                        <th className="text-white">Course / Class</th>
-                        <th className="text-white">Score</th>
-                        <th className="text-white">Submitted At</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {submissions.map((submission) => (
-                        <tr key={submission.id}>
-                          <td>
-                            <div className="fw-semibold">
-                              {submission.student.fullName || 'N/A'}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Assessment</TableHead>
+                      <TableHead>Course / Class</TableHead>
+                      <TableHead className="text-right">Score</TableHead>
+                      <TableHead>Submitted At</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {submissions.map((submission) => (
+                      <TableRow key={submission.id}>
+                        <TableCell>
+                          <div className="font-medium">
+                            {submission.student.fullName || 'N/A'}
+                          </div>
+                          <div className="text-sm text-foreground-tertiary">
+                            {submission.student.email}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {submission.assessment.title}
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">
+                            {submission.assessment.class.course.code}
+                          </div>
+                          <div className="text-sm mt-1">
+                            <code className="text-xs font-mono font-semibold text-accent-orange bg-accent-orange/10 px-2 py-1 rounded-lg">
+                              {submission.assessment.class.classCode}
+                            </code>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {submission.totalScore !== null ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="font-semibold">
+                                {submission.totalScore.toString()}
+                              </span>
+                              <span className="text-foreground-tertiary">
+                                / {submission.assessment.maxPoints.toString()}
+                              </span>
                             </div>
-                            <div className="small text-muted">
-                              {submission.student.email}
-                            </div>
-                          </td>
-                          <td>
-                            <div className="fw-semibold">
-                              {submission.assessment.title}
-                            </div>
-                          </td>
-                          <td>
-                            <div className="fw-semibold">
-                              {submission.assessment.class.course.code}
-                            </div>
-                            <div className="small text-muted">
-                              <code className="text-primary">{submission.assessment.class.classCode}</code>
-                            </div>
-                          </td>
-                          <td>
-                            {submission.totalScore !== null ? (
-                              <div>
-                                <span className="fw-semibold">
-                                  {submission.totalScore.toString()}
-                                </span>
-                                <span className="small text-muted">
-                                  {' '}
-                                  / {submission.assessment.maxPoints.toString()}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="badge bg-warning text-dark">Pending</span>
+                          ) : (
+                            <Badge variant="warning">Pending</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div>{new Date(submission.submittedAt).toLocaleDateString()}</div>
+                          <div className="text-xs text-foreground-tertiary">
+                            {new Date(submission.submittedAt).toLocaleTimeString(
+                              [],
+                              { hour: '2-digit', minute: '2-digit' }
                             )}
-                          </td>
-                          <td className="small text-muted">
-                            <div>{new Date(submission.submittedAt).toLocaleDateString()}</div>
-                            <div style={{ fontSize: '0.75rem' }}>
-                              {new Date(submission.submittedAt).toLocaleTimeString(
-                                [],
-                                { hour: '2-digit', minute: '2-digit' }
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
-            </div>
-          </div>
-        </div>
-      </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

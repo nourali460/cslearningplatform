@@ -32,7 +32,7 @@ export async function GET(
       return NextResponse.json({ error: 'Class not found' }, { status: 404 })
     }
 
-    // Fetch assessments with submission counts
+    // Fetch assessments with submission counts and module linkage info
     const assessments = await db.assessment.findMany({
       where: {
         classId: classId,
@@ -46,6 +46,19 @@ export async function GET(
         _count: {
           select: {
             submissions: true,
+            moduleItems: true, // ✅ Add count of module items linking to this assessment
+          },
+        },
+        moduleItems: {
+          // ✅ Include module items to show which modules contain this assessment
+          include: {
+            module: {
+              select: {
+                id: true,
+                title: true,
+                isPublished: true,
+              },
+            },
           },
         },
       },
@@ -145,6 +158,7 @@ export async function POST(
       maxAttempts,
       orderIndex,
       rubricId,
+      isPublished,
     } = body
 
     // Validation
@@ -176,6 +190,7 @@ export async function POST(
         maxAttempts: maxAttempts || 1,
         orderIndex: orderIndex || null,
         rubricId: rubricId || null,
+        isPublished: isPublished !== undefined ? isPublished : true, // ✅ Use form value or default to true
       },
       include: {
         rubric: {

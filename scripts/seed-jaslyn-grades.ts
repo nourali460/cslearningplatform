@@ -139,34 +139,37 @@ async function seedJaslynGrades() {
           const score = (template.maxPoints * percentage) / 100
 
           // Create graded submission
+          const submissionData: any = {
+            assessmentId: assessment.id,
+            studentId: jaslyn.id,
+            attemptNumber: 1,
+            submissionText: type === 'DISCUSSION'
+              ? 'This is my thoughtful response to the discussion prompt. I believe that...'
+              : 'Assignment completed successfully.',
+            status: 'GRADED',
+            totalScore: parseFloat(score.toFixed(1)),
+            submittedAt: submittedDate,
+            feedback: percentage >= 95
+              ? 'Excellent work! You demonstrated a strong understanding of the material.'
+              : percentage >= 90
+              ? 'Great job! Keep up the good work.'
+              : 'Good effort. Review the feedback comments for areas of improvement.',
+            isLate: false,
+          }
+
+          if (type === 'LAB' || type === 'EXAM') {
+            submissionData.submissionFiles = JSON.stringify([
+              {
+                fileName: `${template.title.replace(/[^a-zA-Z0-9]/g, '_')}.zip`,
+                fileSize: Math.floor(Math.random() * 1000000) + 50000,
+                fileType: 'application/zip',
+                uploadedAt: submittedDate.toISOString(),
+              },
+            ])
+          }
+
           const submission = await db.assessmentSubmission.create({
-            data: {
-              assessmentId: assessment.id,
-              studentId: jaslyn.id,
-              attemptNumber: 1,
-              submissionText: type === 'DISCUSSION'
-                ? 'This is my thoughtful response to the discussion prompt. I believe that...'
-                : 'Assignment completed successfully.',
-              submissionFiles: type === 'LAB' || type === 'EXAM'
-                ? JSON.stringify([
-                    {
-                      fileName: `${template.title.replace(/[^a-zA-Z0-9]/g, '_')}.zip`,
-                      fileSize: Math.floor(Math.random() * 1000000) + 50000,
-                      fileType: 'application/zip',
-                      uploadedAt: submittedDate.toISOString(),
-                    },
-                  ])
-                : null,
-              status: 'GRADED',
-              totalScore: parseFloat(score.toFixed(1)),
-              submittedAt: submittedDate,
-              feedback: percentage >= 95
-                ? 'Excellent work! You demonstrated a strong understanding of the material.'
-                : percentage >= 90
-                ? 'Great job! Keep up the good work.'
-                : 'Good effort. Review the feedback comments for areas of improvement.',
-              isLate: false,
-            },
+            data: submissionData,
           })
 
           totalSubmissions++

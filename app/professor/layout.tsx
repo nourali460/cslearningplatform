@@ -1,97 +1,84 @@
 'use client'
 
-import Link from 'next/link'
-import { LogoutButton } from '@/components/logout-button'
-import { usePathname } from 'next/navigation'
-import { BookOpen, ClipboardList, CheckSquare, Library, GraduationCap } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { Sidebar } from '@/components/navigation/Sidebar'
+import { BookOpen, ClipboardList, CheckSquare, Library, GraduationCap, Layers } from 'lucide-react'
+
+const navItems = [
+  { href: '/professor', label: 'Dashboard', icon: BookOpen },
+  { href: '/professor/courses', label: 'Available Courses', icon: Library },
+  { href: '/professor/students', label: 'Students', icon: GraduationCap },
+  { href: '/professor/modules', label: 'Modules', icon: Layers },
+  { href: '/professor/assessments', label: 'Assessments', icon: ClipboardList },
+  { href: '/professor/grading', label: 'Grading', icon: CheckSquare },
+]
 
 export default function ProfessorLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
+  const router = useRouter()
+  const [user, setUser] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const navItems = [
-    { href: '/professor', label: 'Dashboard', icon: BookOpen },
-    { href: '/professor/courses', label: 'Available Courses', icon: Library },
-    { href: '/professor/students', label: 'Students', icon: GraduationCap },
-    { href: '/professor/assessments', label: 'Assessments', icon: ClipboardList },
-    { href: '/professor/grading', label: 'Grading', icon: CheckSquare },
-  ]
+  useEffect(() => {
+    fetch('/api/professor/profile')
+      .then((res) => res.json())
+      .then((data) => {
+        setUser({
+          fullName: data.professor.fullName,
+          email: data.professor.email,
+          role: 'Professor',
+        })
+        setIsLoading(false)
+      })
+      .catch(() => {
+        router.push('/sign-in')
+      })
+  }, [router])
 
-  return (
-    <div className="container-fluid p-0">
-      <div className="row g-0">
-        {/* Left Sidebar */}
-        <div className="col-md-3 col-lg-2" style={{
-          background: 'linear-gradient(180deg, #0d6efd 0%, #084298 100%)',
-          minHeight: '100vh',
-          color: 'white'
-        }}>
-          <div className="p-4">
-            {/* Header */}
-            <div className="mb-4">
-              <h1 className="h4 fw-bold mb-1">Professor Portal</h1>
-              <p className="small mb-0 opacity-75">CS Learning Platform</p>
-            </div>
+  const handleLogout = async () => {
+    console.log('Logout clicked from sidebar')
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      })
+      console.log('Logout response:', response.status)
+      router.push('/sign-in')
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
 
-            <hr className="border-white opacity-25 my-4" />
-
-            {/* Navigation */}
-            <nav className="mb-4">
-              {navItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`d-flex align-items-center text-decoration-none px-3 py-2 rounded mb-2 ${
-                      isActive
-                        ? 'bg-white text-primary fw-semibold'
-                        : 'text-white'
-                    }`}
-                    style={{
-                      transition: 'all 0.2s',
-                      ...(isActive ? {} : { opacity: 0.9 })
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.backgroundColor = 'transparent'
-                      }
-                    }}
-                  >
-                    <Icon size={18} className="me-2" />
-                    <span className="small">{item.label}</span>
-                  </Link>
-                )
-              })}
-            </nav>
-
-            <hr className="border-white opacity-25 my-4" />
-
-            {/* User Info - This will be populated by getting the user from cookies/session */}
-            <div className="px-3">
-              <div className="small opacity-75 mb-2">Logged in as:</div>
-              <div className="small fw-semibold mb-3">Professor</div>
-              <LogoutButton />
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="col-md-9 col-lg-10">
-          <div className="p-4 p-md-5">
-            {children}
-          </div>
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-accent-orange" />
+          <p className="text-sm text-foreground-secondary">Loading...</p>
         </div>
       </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
+
+  return (
+    <div className="flex h-screen bg-background">
+      <Sidebar
+        navItems={navItems}
+        user={user}
+        onLogout={handleLogout}
+        title="Professor Portal"
+        subtitle="CS Learning Platform"
+      />
+      <main className="flex-1 overflow-y-auto">
+        <div className="container-claude py-8">{children}</div>
+      </main>
     </div>
   )
 }

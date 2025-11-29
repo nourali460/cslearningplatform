@@ -5,7 +5,7 @@ const prisma = new PrismaClient()
 
 const PRIMARY_ADMIN = {
   clerkId: 'user_35rVge67RtsAqrA0Vl4JC6F9dOW',
-  email: 'subscriptionnova@gmail.com',
+  email: 'subscriptionsnova@gmail.com',
   fullName: 'Nour Ali',
   role: 'admin',
 }

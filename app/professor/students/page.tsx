@@ -1,8 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { GraduationCap, Users } from 'lucide-react'
+import { GraduationCap, Users, Loader2, AlertCircle, UserPlus } from 'lucide-react'
 import { PasswordManager } from '@/components/admin/PasswordManager'
+import { CreateStudentModal } from '@/components/professor/CreateStudentModal'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 interface ProfessorClass {
   id: string
@@ -48,6 +54,7 @@ export default function ProfessorStudentsPage() {
   const [loading, setLoading] = useState(true)
   const [loadingStudents, setLoadingStudents] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
     fetchClasses()
@@ -104,174 +111,211 @@ export default function ProfessorStudentsPage() {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Page Header */}
-      <div className="mb-4">
-        <h1 className="h2 fw-bold text-primary mb-2">
-          <GraduationCap className="me-2" style={{ display: 'inline', marginTop: '-4px' }} />
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground mb-2 flex items-center gap-2">
+          <GraduationCap className="h-8 w-8" />
           Students
         </h1>
-        <p className="text-muted mb-0">
+        <p className="text-foreground-secondary">
           View and manage students enrolled in your classes
         </p>
       </div>
 
       {/* Error Alert */}
       {error && (
-        <div className="alert alert-danger d-flex align-items-center" role="alert">
-          <i className="bi bi-exclamation-triangle-fill me-2"></i>
-          <div>{error}</div>
-        </div>
+        <Card className="border-l-4 border-l-error bg-error/10">
+          <CardContent className="flex items-center gap-2 py-3">
+            <AlertCircle size={20} className="text-error" />
+            <span>{error}</span>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Security Warning */}
+      {classInfo && students.length > 0 && (
+        <Card className="border-l-4 border-l-warning bg-warning/10">
+          <CardContent className="py-3">
+            <div className="flex items-start gap-2">
+              <AlertCircle size={18} className="text-warning mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <strong>Password Security Notice:</strong> Student passwords are visible to you as the professor.
+                Please share passwords securely (e.g., in person, secure messaging). You can regenerate passwords
+                at any time using the refresh button next to each password.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Class Selector */}
-      <div className="card mb-4">
-        <div className="card-body">
-          <div className="row align-items-end">
-            <div className="col-md-6">
-              <label htmlFor="classSelect" className="form-label fw-semibold">
-                <Users size={18} className="me-1" style={{ marginTop: '-2px' }} />
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <div>
+              <label className="text-sm font-medium mb-2 flex items-center gap-2">
+                <Users size={18} />
                 Select a Class
               </label>
               {loading ? (
-                <div className="spinner-border spinner-border-sm text-primary" role="status">
-                  <span className="visually-hidden">Loading classes...</span>
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-accent-orange" />
+                  <span className="text-sm text-muted-foreground">Loading classes...</span>
                 </div>
               ) : classes.length === 0 ? (
-                <div className="alert alert-info mb-0">
-                  <i className="bi bi-info-circle me-2"></i>
-                  You don't have any classes yet. Create a class from the Available Courses page.
-                </div>
+                <Card className="border-l-4 border-l-info bg-info/10">
+                  <CardContent className="py-3">
+                    <p className="text-sm">
+                      You don't have any classes yet. Create a class from the Available Courses page.
+                    </p>
+                  </CardContent>
+                </Card>
               ) : (
-                <select
-                  id="classSelect"
-                  className="form-select"
-                  value={selectedClassId}
-                  onChange={(e) => setSelectedClassId(e.target.value)}
-                >
-                  <option value="">-- Choose a class --</option>
-                  {classes.map((classItem) => (
-                    <option key={classItem.id} value={classItem.id}>
-                      {classItem.classCode} - {classItem.course.code} ({classItem.term} {classItem.year})
-                    </option>
-                  ))}
-                </select>
+                <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="-- Choose a class --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((classItem) => (
+                      <SelectItem key={classItem.id} value={classItem.id}>
+                        {classItem.classCode} - {classItem.course.code} ({classItem.term} {classItem.year})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
             {classInfo && (
-              <div className="col-md-6 text-md-end">
-                <div className="text-muted small">
-                  <strong>{students.length}</strong> student{students.length !== 1 ? 's' : ''} enrolled
+              <div className="flex items-center gap-3 justify-end">
+                <div className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">{students.length}</strong> student{students.length !== 1 ? 's' : ''} enrolled
                 </div>
+                <Button onClick={() => setShowCreateModal(true)} size="sm">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Create Student
+                </Button>
               </div>
             )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Loading State */}
       {loadingStudents && (
-        <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading students...</span>
-          </div>
-          <p className="text-muted mt-3">Loading students...</p>
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-accent-orange mb-4" />
+          <p className="text-muted-foreground">Loading students...</p>
         </div>
       )}
 
       {/* Students Table */}
       {!loadingStudents && classInfo && (
-        <div className="card">
-          <div className="card-header bg-primary text-white">
-            <h5 className="card-title mb-1">
-              <i className="bi bi-people-fill me-2"></i>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
               Enrolled Students - {classInfo.courseCode}
-            </h5>
-            <p className="mb-0 small opacity-90">
+            </CardTitle>
+            <CardDescription>
               {classInfo.classCode} • {classInfo.term} {classInfo.year} • Section {classInfo.section}
-            </p>
-          </div>
-          <div className="card-body p-0">
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
             {students.length === 0 ? (
-              <div className="text-center py-5 text-muted">
-                <GraduationCap size={64} className="mb-3 opacity-25" />
-                <p className="mb-0">No students enrolled in this class yet.</p>
-                <p className="small">Students can enroll using the class code: <code className="badge bg-primary">{classInfo.classCode}</code></p>
+              <div className="text-center py-12 px-6">
+                <GraduationCap size={64} className="text-muted-foreground mx-auto mb-4 opacity-25" />
+                <p className="text-muted-foreground mb-2">No students enrolled in this class yet.</p>
+                <div className="text-sm text-muted-foreground">
+                  Students can enroll using the class code: <Badge variant="purple">{classInfo.classCode}</Badge>
+                </div>
               </div>
             ) : (
-              <div className="table-responsive">
-                <table className="table table-hover mb-0">
-                  <thead>
-                    <tr className="border-bottom">
-                      <th className="py-3">Full Name</th>
-                      <th className="py-3">Email</th>
-                      <th className="py-3">School ID</th>
-                      <th className="py-3">Password</th>
-                      <th className="py-3">Enrollment Status</th>
-                      <th className="py-3">Enrolled Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {students.map((student) => (
-                      <tr key={student.enrollmentId}>
-                        <td className="py-3">
-                          <div className="d-flex align-items-center">
-                            <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
-                              style={{ width: '32px', height: '32px', fontSize: '14px', fontWeight: 'bold' }}>
-                              {(student.fullName || student.email).charAt(0).toUpperCase()}
-                            </div>
-                            <span className="fw-semibold">{student.fullName || 'N/A'}</span>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Full Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>School ID</TableHead>
+                    <TableHead>Password</TableHead>
+                    <TableHead>Enrollment Status</TableHead>
+                    <TableHead>Enrolled Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {students.map((student) => (
+                    <TableRow key={student.enrollmentId}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="bg-accent-purple text-white rounded-full flex items-center justify-center w-8 h-8 text-sm font-bold">
+                            {(student.fullName || student.email).charAt(0).toUpperCase()}
                           </div>
-                        </td>
-                        <td className="py-3">
-                          <a href={`mailto:${student.email}`} className="text-decoration-none">
-                            {student.email}
-                          </a>
-                        </td>
-                        <td className="py-3">
-                          {student.schoolId ? (
-                            <code className="badge bg-secondary">{student.schoolId}</code>
-                          ) : (
-                            <span className="text-muted">-</span>
-                          )}
-                        </td>
-                        <td className="py-3">
-                          <PasswordManager
-                            userId={student.id}
-                            initialPassword={student.password}
-                            userName={student.fullName || student.email}
-                            userRole="student"
-                          />
-                        </td>
-                        <td className="py-3">
-                          <span className={`badge ${
-                            student.enrollmentStatus === 'active' ? 'bg-success' :
-                            student.enrollmentStatus === 'dropped' ? 'bg-danger' :
-                            'bg-secondary'
-                          }`}>
-                            {student.enrollmentStatus || 'active'}
-                          </span>
-                        </td>
-                        <td className="py-3 text-muted small">
-                          {new Date(student.enrolledAt).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          <span className="font-semibold">{student.fullName || 'N/A'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <a href={`mailto:${student.email}`} className="text-accent-purple hover:underline">
+                          {student.email}
+                        </a>
+                      </TableCell>
+                      <TableCell>
+                        {student.schoolId ? (
+                          <Badge>{student.schoolId}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <PasswordManager
+                          userId={student.id}
+                          initialPassword={student.password}
+                          userName={student.fullName || student.email}
+                          userRole="student"
+                          managerRole="professor"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          student.enrollmentStatus === 'active' ? 'success' :
+                          student.enrollmentStatus === 'dropped' ? 'error' :
+                          'default'
+                        }>
+                          {student.enrollmentStatus || 'active'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(student.enrolledAt).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Empty State - No Class Selected */}
       {!loadingStudents && !classInfo && !loading && classes.length > 0 && (
-        <div className="text-center py-5">
-          <Users size={64} className="text-muted mb-3 opacity-25" />
-          <h3 className="h5 text-muted">Select a class to view students</h3>
-          <p className="text-muted">Choose a class from the dropdown above to see enrolled students.</p>
+        <div className="text-center py-12">
+          <Users size={64} className="text-muted-foreground mx-auto mb-4 opacity-25" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">Select a class to view students</h3>
+          <p className="text-muted-foreground">Choose a class from the dropdown above to see enrolled students.</p>
         </div>
+      )}
+
+      {/* Create Student Modal */}
+      {showCreateModal && (
+        <CreateStudentModal
+          classes={classes}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setShowCreateModal(false)
+            if (selectedClassId) {
+              fetchStudents(selectedClassId)
+            }
+          }}
+        />
       )}
     </div>
   )

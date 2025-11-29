@@ -1,93 +1,74 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { LogoutButton } from '@/components/logout-button'
-import { useEffect, useState } from 'react'
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Sidebar, icons } from "@/components/navigation/Sidebar";
+import { LayoutDashboard, BookOpen, ClipboardList, BarChart3 } from "lucide-react";
+
+const navItems = [
+  { href: "/student", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/student/classes", label: "My Classes", icon: BookOpen },
+  { href: "/student/assignments", label: "Assignments", icon: ClipboardList },
+  { href: "/student/grades", label: "Grades", icon: BarChart3 },
+];
 
 export default function StudentLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const pathname = usePathname()
-  const [user, setUser] = useState<any>(null)
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch user info
-    fetch('/api/student/whoami')
+    fetch("/api/student/whoami")
       .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => {
-        window.location.href = '/sign-in'
+      .then((data) => {
+        setUser({
+          fullName: data.user.fullName,
+          email: data.user.email,
+          role: data.user.role,
+        });
+        setIsLoading(false);
       })
-  }, [])
+      .catch(() => {
+        router.push("/sign-in");
+      });
+  }, [router]);
 
-  const navItems = [
-    { href: '/student', label: 'Dashboard', icon: '📊' },
-    { href: '/student/classes', label: 'My Classes', icon: '📚' },
-    { href: '/student/assignments', label: 'Assignments', icon: '📋' },
-    { href: '/student/grades', label: 'Grades', icon: '📈' },
-  ]
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/sign-in");
+  };
 
-  if (!user) {
+  if (isLoading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-accent-orange" />
+          <p className="text-sm text-foreground-secondary">Loading...</p>
         </div>
       </div>
-    )
+    );
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (
-    <div className="container-fluid p-0">
-      <div className="row g-0">
-        {/* Sidebar */}
-        <div className="col-md-3 col-lg-2 student-sidebar">
-          <div className="p-4">
-            {/* Brand */}
-            <Link href="/student" className="text-decoration-none">
-              <h2 className="text-white fw-bold mb-1">Student Portal</h2>
-              <p className="text-white-50 small mb-0">CS Learning Platform</p>
-            </Link>
-
-            <hr className="border-white opacity-25 my-4" />
-
-            {/* Navigation */}
-            <nav className="nav flex-column">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`nav-link d-flex align-items-center ${
-                    pathname === item.href ? 'active' : ''
-                  }`}
-                >
-                  <span className="me-2">{item.icon}</span>
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-
-            <hr className="border-white opacity-25 my-4" />
-
-            {/* User Info */}
-            <div className="mt-auto">
-              <div className="small text-white-50 mb-2">Logged in as:</div>
-              <div className="small text-white mb-3">{user.fullName || user.email}</div>
-              <LogoutButton />
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="col-md-9 col-lg-10">
-          <div className="p-4 p-md-5">
-            {children}
-          </div>
-        </div>
-      </div>
+    <div className="flex h-screen bg-background">
+      <Sidebar
+        navItems={navItems}
+        user={user}
+        onLogout={handleLogout}
+        title="Student Portal"
+        subtitle="CS Learning Platform"
+      />
+      <main className="flex-1 overflow-y-auto">
+        <div className="container-claude py-8">{children}</div>
+      </main>
     </div>
-  )
+  );
 }

@@ -4,21 +4,33 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 const PRIMARY_ADMIN = {
-  clerkId: 'user_35rVge67RtsAqrA0Vl4JC6F9dOW',
-  email: 'subscriptionnova@gmail.com',
+  email: 'subscriptionsnova@gmail.com',
+  password: 'admin123',
   fullName: 'Nour Ali',
   role: 'admin',
 }
 
 async function main() {
   console.log('Checking for primary admin user...')
-  
+
   const existing = await prisma.user.findUnique({
-    where: { clerkId: PRIMARY_ADMIN.clerkId }
+    where: { email: PRIMARY_ADMIN.email }
   })
 
   if (existing) {
     console.log('✅ Admin user already exists:', existing.email)
+    console.log('📋 Checking password...')
+
+    if (!existing.password || existing.password.trim() === '') {
+      console.log('🔧 Password missing - updating...')
+      await prisma.user.update({
+        where: { email: PRIMARY_ADMIN.email },
+        data: { password: PRIMARY_ADMIN.password }
+      })
+      console.log('✅ Password updated successfully!')
+    } else {
+      console.log('✅ Password already set')
+    }
     return
   }
 
@@ -27,6 +39,8 @@ async function main() {
   })
 
   console.log('✅ Created admin user:', admin.email)
+  console.log('📧 Email:', admin.email)
+  console.log('🔑 Password: admin123')
 }
 
 main()

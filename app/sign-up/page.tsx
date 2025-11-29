@@ -1,542 +1,627 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { GraduationCap, Users, ArrowLeft, CheckCircle, Copy } from 'lucide-react'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  GraduationCap,
+  Users,
+  ArrowLeft,
+  CheckCircle,
+  Copy,
+  AlertCircle,
+  Loader2,
+  Info,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-type Role = 'student' | 'professor' | null
+type Role = "student" | "professor" | null;
 
 export default function SignUpPage() {
-  const router = useRouter()
-  const [selectedRole, setSelectedRole] = useState<Role>(null)
-  const [step, setStep] = useState<'role' | 'classCode' | 'register' | 'success'>('role')
+  const router = useRouter();
+  const [selectedRole, setSelectedRole] = useState<Role>(null);
+  const [step, setStep] = useState<
+    "role" | "classCode" | "register" | "success"
+  >("role");
 
   // Form fields
-  const [email, setEmail] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [usernameSchoolId, setUsernameSchoolId] = useState('')
-  const [classCode, setClassCode] = useState('')
+  const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [usernameSchoolId, setUsernameSchoolId] = useState("");
+  const [classCode, setClassCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   // UI state
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [generatedPassword, setGeneratedPassword] = useState('')
-  const [copiedPassword, setCopiedPassword] = useState(false)
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [generatedPassword, setGeneratedPassword] = useState("");
+  const [copiedPassword, setCopiedPassword] = useState(false);
 
   const handleRoleSelect = (role: Role) => {
-    setSelectedRole(role)
-    if (role === 'student') {
-      setStep('classCode')
-    } else if (role === 'professor') {
-      setStep('register')
+    setSelectedRole(role);
+    if (role === "student") {
+      setStep("classCode");
+    } else if (role === "professor") {
+      setStep("register");
     }
-  }
+  };
 
   const handleClassCodeContinue = async () => {
     if (!classCode.trim()) {
-      setError('Please enter a class code')
-      return
+      setError("Please enter a class code");
+      return;
     }
 
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
-      // Validate the class code
-      const response = await fetch('/api/validate-class-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/validate-class-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ classCode: classCode.trim().toUpperCase() }),
-      })
+      });
 
       if (!response.ok) {
-        const data = await response.json()
-        setError(data.error || 'Invalid class code')
-        setIsLoading(false)
-        return
+        const data = await response.json();
+        setError(data.error || "Invalid class code");
+        setIsLoading(false);
+        return;
       }
 
-      // Class code valid - proceed to registration
-      setStep('register')
-      setIsLoading(false)
+      setStep("register");
+      setIsLoading(false);
     } catch (error) {
-      setError('Failed to validate class code. Please try again.')
-      setIsLoading(false)
+      setError("Failed to validate class code. Please try again.");
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setIsLoading(true)
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
 
-    // Validation
     if (!usernameSchoolId.trim()) {
-      setError('School ID is required')
-      setIsLoading(false)
-      return
+      setError("School ID is required");
+      setIsLoading(false);
+      return;
     }
 
-    const schoolIdNum = parseInt(usernameSchoolId.trim(), 10)
+    const schoolIdNum = parseInt(usernameSchoolId.trim(), 10);
     if (isNaN(schoolIdNum) || schoolIdNum < 0 || schoolIdNum > 1000000) {
-      setError('School ID must be a number between 0 and 1000000')
-      setIsLoading(false)
-      return
+      setError("School ID must be a number between 0 and 1000000");
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate password for students
+    if (selectedRole === "student") {
+      if (password.length < 6) {
+        setError("Password must be at least 6 characters");
+        setIsLoading(false);
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setError("Passwords do not match");
+        setIsLoading(false);
+        return;
+      }
     }
 
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim(),
           fullName: fullName.trim(),
           role: selectedRole,
           usernameSchoolId: usernameSchoolId.trim(),
-          classCode: selectedRole === 'student' ? classCode.trim().toUpperCase() : undefined,
+          password: selectedRole === "student" ? password.trim() : undefined,
+          classCode:
+            selectedRole === "student"
+              ? classCode.trim().toUpperCase()
+              : undefined,
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Registration failed')
-        setIsLoading(false)
-        return
+        setError(data.error || "Registration failed");
+        setIsLoading(false);
+        return;
       }
 
-      // Success! Show the generated password
-      setGeneratedPassword(data.user.password)
-      setStep('success')
-      setIsLoading(false)
+      // Only set generated password for professors
+      if (selectedRole === "professor" && data.user.password) {
+        setGeneratedPassword(data.user.password);
+      }
+      setStep("success");
+      setIsLoading(false);
     } catch (error) {
-      console.error('Registration error:', error)
-      setError('An unexpected error occurred. Please try again.')
-      setIsLoading(false)
+      console.error("Registration error:", error);
+      setError("An unexpected error occurred. Please try again.");
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleCopyPassword = () => {
-    navigator.clipboard.writeText(generatedPassword)
-    setCopiedPassword(true)
-    setTimeout(() => setCopiedPassword(false), 2000)
-  }
+    navigator.clipboard.writeText(generatedPassword);
+    setCopiedPassword(true);
+    setTimeout(() => setCopiedPassword(false), 2000);
+  };
 
   const handleContinueToSignIn = () => {
-    router.push('/sign-in')
-  }
+    router.push("/sign-in");
+  };
 
   // Success screen
-  if (step === 'success') {
+  if (step === "success") {
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%)' }}>
-        <nav className="navbar navbar-light bg-white border-bottom shadow-sm">
-          <div className="container">
-            <Link href="/" className="navbar-brand d-flex align-items-center">
-              <GraduationCap className="me-2" size={24} style={{ color: 'var(--primary-blue)' }} />
-              <span className="fw-bold">CS Learning Platform</span>
-            </Link>
-          </div>
-        </nav>
-
-        <div className="container py-5">
-          <div className="row justify-content-center">
-            <div className="col-12 col-md-8 col-lg-5">
-              <div className="card shadow-lg border-0">
-                <div className="card-header text-white text-center py-4" style={{ backgroundColor: 'var(--primary-blue)' }}>
-                  <div className="d-flex justify-content-center mb-3">
-                    <div className="rounded-circle bg-white p-3">
-                      <CheckCircle size={48} style={{ color: 'var(--primary-blue)' }} />
-                    </div>
-                  </div>
-                  <h5 className="card-title mb-2 fw-bold">Account Created Successfully!</h5>
-                  <p className="mb-0 small opacity-90">
-                    {selectedRole === 'professor'
-                      ? 'Your professor account is pending admin approval.'
-                      : 'Your account has been created. Save your password to sign in.'}
-                  </p>
-                </div>
-                <div className="card-body p-4">
-                  {/* Generated Password */}
-                  <div className="bg-light rounded p-4 mb-3">
-                    <label className="form-label small text-muted">Your Generated Password</label>
-                    <div className="d-flex align-items-center justify-content-between gap-3">
-                      <code className="fs-4 fw-bold text-primary" style={{ letterSpacing: '0.1em' }}>
-                        {generatedPassword}
-                      </code>
-                      <button
-                        className={`btn ${copiedPassword ? 'btn-success' : 'btn-outline-primary'} btn-sm`}
-                        onClick={handleCopyPassword}
-                      >
-                        {copiedPassword ? (
-                          <>
-                            <CheckCircle className="me-1" size={16} />
-                            Copied!
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="me-1" size={16} />
-                            Copy
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Warning Alert */}
-                  <div className="alert alert-warning d-flex align-items-start" role="alert">
-                    <svg className="bi flex-shrink-0 me-2" width="24" height="24" role="img">
-                      <use xlinkHref="#exclamation-triangle-fill"/>
-                    </svg>
-                    <div>
-                      <strong>Important:</strong> Save this password now! You'll need it to sign in.
-                    </div>
-                  </div>
-
-                  {/* Account Details */}
-                  <div className="mb-4">
-                    <p className="small text-muted mb-2">
-                      <strong>Email:</strong> {email}
-                    </p>
-                    <p className="small text-muted mb-2">
-                      <strong>Role:</strong> {selectedRole === 'professor' ? 'Professor' : 'Student'}
-                    </p>
-                    <p className="small text-muted mb-0">
-                      <strong>School ID:</strong> {usernameSchoolId}
-                    </p>
-                  </div>
-
-                  {/* Continue Button */}
-                  <button
-                    className="btn btn-primary btn-lg w-100 fw-semibold"
-                    onClick={handleContinueToSignIn}
-                    disabled={selectedRole === 'professor'}
-                  >
-                    {selectedRole === 'professor' ? 'Awaiting Admin Approval' : 'Continue to Sign In'}
-                  </button>
-
-                  {selectedRole === 'professor' && (
-                    <p className="text-center text-muted small mt-3 mb-0">
-                      You'll receive a notification once your account is approved by an administrator.
-                    </p>
-                  )}
-                </div>
-              </div>
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="border-b border-border bg-card">
+          <div className="container-claude">
+            <div className="flex items-center justify-between h-16">
+              <Link
+                href="/"
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                <GraduationCap className="h-6 w-6 text-accent-orange" />
+                <span className="font-semibold text-lg text-foreground">
+                  CS Learning Platform
+                </span>
+              </Link>
             </div>
           </div>
-        </div>
+        </header>
+
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg space-y-6">
+            <div className="bg-card border border-border rounded-xl p-8 space-y-6">
+              {/* Success Icon */}
+              <div className="flex justify-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-success/10">
+                  <CheckCircle className="h-8 w-8 text-success" />
+                </div>
+              </div>
+
+              {/* Title */}
+              <div className="text-center space-y-2">
+                <h1 className="text-2xl font-semibold text-foreground">
+                  Account Created Successfully!
+                </h1>
+                <p className="text-foreground-secondary">
+                  {selectedRole === "professor"
+                    ? "Your professor account is pending admin approval."
+                    : "Your account has been created. You can now sign in with your password."}
+                </p>
+              </div>
+
+              {/* Generated Password (Professors Only) */}
+              {selectedRole === "professor" && generatedPassword && (
+                <div className="bg-background-secondary rounded-lg p-6 space-y-3">
+                  <Label className="text-xs text-foreground-tertiary uppercase tracking-wide">
+                    Your Generated Password
+                  </Label>
+                  <div className="flex items-center justify-between gap-4">
+                    <code className="text-2xl font-mono font-bold text-accent-orange tracking-widest">
+                      {generatedPassword}
+                    </code>
+                    <Button
+                      variant={copiedPassword ? "success" : "outline"}
+                      size="sm"
+                      onClick={handleCopyPassword}
+                    >
+                      {copiedPassword ? (
+                        <>
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Warning (Professors Only) */}
+              {selectedRole === "professor" && generatedPassword && (
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-warning/10 border border-warning/20 text-warning">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <strong className="font-semibold">Important:</strong> Save
+                    this password now! You'll need it to sign in.
+                  </div>
+                </div>
+              )}
+
+              {/* Account Details */}
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-foreground-tertiary">Email:</span>
+                  <span className="text-foreground font-medium">{email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-foreground-tertiary">Role:</span>
+                  <span className="text-foreground font-medium">
+                    {selectedRole === "professor" ? "Professor" : "Student"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-foreground-tertiary">School ID:</span>
+                  <span className="text-foreground font-medium">
+                    {usernameSchoolId}
+                  </span>
+                </div>
+              </div>
+
+              {/* Continue Button */}
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleContinueToSignIn}
+                disabled={selectedRole === "professor"}
+              >
+                {selectedRole === "professor"
+                  ? "Awaiting Admin Approval"
+                  : "Continue to Sign In"}
+              </Button>
+
+              {selectedRole === "professor" && (
+                <p className="text-center text-sm text-foreground-tertiary">
+                  You'll receive a notification once your account is approved by
+                  an administrator.
+                </p>
+              )}
+            </div>
+          </div>
+        </main>
       </div>
-    )
+    );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%)' }}>
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <nav className="navbar navbar-light bg-white border-bottom shadow-sm">
-        <div className="container">
-          <Link href="/" className="navbar-brand d-flex align-items-center">
-            <GraduationCap className="me-2" size={24} style={{ color: 'var(--primary-blue)' }} />
-            <span className="fw-bold">CS Learning Platform</span>
-          </Link>
-          <Link href="/" className="btn btn-outline-primary">
-            Back to Home
-          </Link>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <div className="container py-5">
-        <div className="row justify-content-center">
-          <div className="col-12 col-lg-10">
-            {/* Page Title */}
-            <div className="text-center mb-5">
-              <h1 className="display-5 fw-bold text-dark mb-2">Create Your Account</h1>
-              <p className="lead text-muted">
-                {step === 'role' && 'Select your role to get started'}
-                {step === 'classCode' && 'Enter your class code to continue'}
-                {step === 'register' && 'Complete your registration'}
-              </p>
-            </div>
-
-            {/* Role Selection */}
-            {step === 'role' && (
-              <div className="row g-4 justify-content-center">
-                <div className="col-12 col-md-6 col-lg-5">
-                  <div
-                    className="card h-100 shadow-sm border-primary"
-                    style={{ cursor: 'pointer', transition: 'all 0.3s' }}
-                    onClick={() => handleRoleSelect('student')}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-5px)'
-                      e.currentTarget.style.boxShadow = '0 0.5rem 1rem rgba(0,0,0,0.15)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow = ''
-                    }}
-                  >
-                    <div className="card-body text-center p-4">
-                      <div className="d-flex justify-content-center mb-4">
-                        <div className="rounded-circle p-4" style={{ backgroundColor: '#cfe2ff' }}>
-                          <GraduationCap size={48} style={{ color: 'var(--primary-blue)' }} />
-                        </div>
-                      </div>
-                      <h5 className="card-title fw-bold mb-2">Student</h5>
-                      <p className="text-muted mb-4">Join a class with a class code</p>
-                      <button
-                        className="btn btn-primary w-100 mb-2"
-                        onClick={() => handleRoleSelect('student')}
-                      >
-                        Sign Up as Student
-                      </button>
-                      <p className="text-muted small mb-0">
-                        Requires class code from professor
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-12 col-md-6 col-lg-5">
-                  <div
-                    className="card h-100 shadow-sm border-success"
-                    style={{ cursor: 'pointer', transition: 'all 0.3s' }}
-                    onClick={() => handleRoleSelect('professor')}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-5px)'
-                      e.currentTarget.style.boxShadow = '0 0.5rem 1rem rgba(0,0,0,0.15)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow = ''
-                    }}
-                  >
-                    <div className="card-body text-center p-4">
-                      <div className="d-flex justify-content-center mb-4">
-                        <div className="rounded-circle p-4" style={{ backgroundColor: '#d1e7dd' }}>
-                          <Users size={48} style={{ color: '#198754' }} />
-                        </div>
-                      </div>
-                      <h5 className="card-title fw-bold mb-2">Professor</h5>
-                      <p className="text-muted mb-4">Create classes and grade student work</p>
-                      <button
-                        className="btn btn-success w-100 mb-2"
-                        onClick={() => handleRoleSelect('professor')}
-                      >
-                        Sign Up as Professor
-                      </button>
-                      <p className="text-muted small mb-0">
-                        Requires admin approval
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Class Code Input (Students) */}
-            {step === 'classCode' && (
-              <div className="row justify-content-center">
-                <div className="col-12 col-md-8 col-lg-6">
-                  <div className="card shadow-lg border-0">
-                    <div className="card-header text-white text-center py-4" style={{ backgroundColor: 'var(--primary-blue)' }}>
-                      <div className="d-flex justify-content-center mb-3">
-                        <div className="rounded-circle bg-white p-3">
-                          <GraduationCap size={40} style={{ color: 'var(--primary-blue)' }} />
-                        </div>
-                      </div>
-                      <h5 className="card-title mb-2 fw-bold">Student Sign Up</h5>
-                      <p className="mb-0 small opacity-90">Enter the class code provided by your professor</p>
-                    </div>
-                    <div className="card-body p-4">
-                      <div className="mb-4">
-                        <label htmlFor="classCode" className="form-label fw-semibold">Class Code</label>
-                        <input
-                          id="classCode"
-                          type="text"
-                          className="form-control form-control-lg text-center"
-                          style={{ fontFamily: 'monospace', fontSize: '1.25rem', letterSpacing: '0.05em' }}
-                          placeholder="e.g., ALI-CS101-FA25-01"
-                          value={classCode}
-                          onChange={(e) => setClassCode(e.target.value.toUpperCase())}
-                          onKeyDown={(e) => e.key === 'Enter' && handleClassCodeContinue()}
-                        />
-                        {error && (
-                          <div className="alert alert-danger mt-3 mb-0" role="alert">
-                            {error}
-                          </div>
-                        )}
-                      </div>
-                      <div className="d-flex gap-2">
-                        <button
-                          className="btn btn-outline-secondary w-50"
-                          onClick={() => {
-                            setStep('role')
-                            setSelectedRole(null)
-                            setClassCode('')
-                            setError(null)
-                          }}
-                        >
-                          <ArrowLeft className="me-2" size={16} />
-                          Back
-                        </button>
-                        <button
-                          className="btn btn-primary w-50"
-                          onClick={handleClassCodeContinue}
-                          disabled={isLoading}
-                        >
-                          {isLoading ? (
-                            <>
-                              <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                              Validating...
-                            </>
-                          ) : (
-                            'Continue'
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Registration Form */}
-            {step === 'register' && (
-              <div className="row justify-content-center">
-                <div className="col-12 col-md-8 col-lg-6">
-                  <div className="card shadow-lg border-0">
-                    <div className="card-header text-white text-center py-3" style={{ backgroundColor: 'var(--primary-blue)' }}>
-                      <h5 className="card-title mb-1 fw-bold">Complete Your Registration</h5>
-                      <p className="mb-0 small opacity-90">
-                        {selectedRole === 'professor' ? 'Create your professor account' : 'Create your student account'}
-                      </p>
-                    </div>
-                    <div className="card-body p-4">
-                      <form onSubmit={handleRegister}>
-                        {/* Full Name */}
-                        <div className="mb-3">
-                          <label htmlFor="fullName" className="form-label fw-semibold">Full Name</label>
-                          <input
-                            id="fullName"
-                            type="text"
-                            className="form-control form-control-lg"
-                            placeholder="John Doe"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            required
-                          />
-                        </div>
-
-                        {/* Email */}
-                        <div className="mb-3">
-                          <label htmlFor="email" className="form-label fw-semibold">Email</label>
-                          <input
-                            id="email"
-                            type="email"
-                            className="form-control form-control-lg"
-                            placeholder="you@example.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            autoComplete="email"
-                          />
-                        </div>
-
-                        {/* School ID */}
-                        <div className="mb-3">
-                          <label htmlFor="usernameSchoolId" className="form-label fw-semibold">School ID</label>
-                          <input
-                            id="usernameSchoolId"
-                            type="number"
-                            className="form-control form-control-lg"
-                            placeholder="Enter your school ID (0-1000000)"
-                            value={usernameSchoolId}
-                            onChange={(e) => setUsernameSchoolId(e.target.value)}
-                            required
-                            min="0"
-                            max="1000000"
-                          />
-                          <div className="form-text">
-                            {selectedRole === 'professor'
-                              ? 'Your school ID will be used in class codes'
-                              : 'Enter your student school ID number'}
-                          </div>
-                        </div>
-
-                        {/* Error Alert */}
-                        {error && (
-                          <div className="alert alert-danger" role="alert">
-                            {error}
-                          </div>
-                        )}
-
-                        {/* Info Alert */}
-                        <div className="alert alert-info" role="alert">
-                          <small>
-                            A unique 6-character password will be generated for you upon registration.
-                          </small>
-                        </div>
-
-                        {/* Buttons */}
-                        <div className="d-flex gap-2">
-                          <button
-                            type="button"
-                            className="btn btn-outline-secondary w-50"
-                            onClick={() => {
-                              if (selectedRole === 'student') {
-                                setStep('classCode')
-                              } else {
-                                setStep('role')
-                                setSelectedRole(null)
-                              }
-                              setError(null)
-                            }}
-                          >
-                            <ArrowLeft className="me-2" size={16} />
-                            Back
-                          </button>
-                          <button
-                            type="submit"
-                            className="btn btn-primary w-50"
-                            disabled={isLoading}
-                          >
-                            {isLoading ? (
-                              <>
-                                <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                                Creating...
-                              </>
-                            ) : (
-                              'Create Account'
-                            )}
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Sign In Link */}
-            <div className="text-center mt-5">
-              <p className="text-muted">
-                Already have an account?{' '}
-                <Link href="/sign-in" className="text-decoration-none fw-semibold" style={{ color: 'var(--primary-blue)' }}>
-                  Sign in here
-                </Link>
-              </p>
-            </div>
+      <header className="border-b border-border bg-card">
+        <div className="container-claude">
+          <div className="flex items-center justify-between h-16">
+            <Link
+              href="/"
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
+              <GraduationCap className="h-6 w-6 text-accent-orange" />
+              <span className="font-semibold text-lg text-foreground">
+                CS Learning Platform
+              </span>
+            </Link>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Home
+              </Link>
+            </Button>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Bootstrap Icons */}
-      <svg xmlns="http://www.w3.org/2000/svg" style={{ display: 'none' }}>
-        <symbol id="exclamation-triangle-fill" fill="currentColor" viewBox="0 0 16 16">
-          <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-        </symbol>
-      </svg>
+      {/* Main Content */}
+      <main className="flex-1 flex items-center justify-center p-4 py-12">
+        <div className="w-full max-w-4xl space-y-8">
+          {/* Title */}
+          <div className="text-center space-y-2">
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground">
+              Create Your Account
+            </h1>
+            <p className="text-lg text-foreground-secondary">
+              {step === "role" && "Select your role to get started"}
+              {step === "classCode" && "Enter your class code to continue"}
+              {step === "register" && "Complete your registration"}
+            </p>
+          </div>
+
+          {/* Role Selection */}
+          {step === "role" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+              {/* Student Card */}
+              <div
+                onClick={() => handleRoleSelect("student")}
+                className="group cursor-pointer bg-card border-2 border-border hover:border-accent-orange rounded-xl p-8 transition-all hover:shadow-lg"
+              >
+                <div className="text-center space-y-4">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-accent-orange/10 text-accent-orange group-hover:bg-accent-orange/20 transition-colors">
+                    <GraduationCap className="h-10 w-10" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-semibold text-foreground">
+                      Student
+                    </h3>
+                    <p className="text-sm text-foreground-secondary">
+                      Join a class with a class code
+                    </p>
+                  </div>
+                  <Button className="w-full" size="lg">
+                    Sign Up as Student
+                  </Button>
+                  <p className="text-xs text-foreground-tertiary">
+                    Requires class code from professor
+                  </p>
+                </div>
+              </div>
+
+              {/* Professor Card */}
+              <div
+                onClick={() => handleRoleSelect("professor")}
+                className="group cursor-pointer bg-card border-2 border-border hover:border-accent-purple rounded-xl p-8 transition-all hover:shadow-lg"
+              >
+                <div className="text-center space-y-4">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-accent-purple/10 text-accent-purple group-hover:bg-accent-purple/20 transition-colors">
+                    <Users className="h-10 w-10" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-semibold text-foreground">
+                      Professor
+                    </h3>
+                    <p className="text-sm text-foreground-secondary">
+                      Create classes and grade student work
+                    </p>
+                  </div>
+                  <Button variant="purple" className="w-full" size="lg">
+                    Sign Up as Professor
+                  </Button>
+                  <p className="text-xs text-foreground-tertiary">
+                    Requires admin approval
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Class Code Input */}
+          {step === "classCode" && (
+            <div className="max-w-lg mx-auto">
+              <div className="bg-card border border-border rounded-xl p-8 space-y-6">
+                <div className="text-center space-y-2">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent-orange/10 text-accent-orange mb-2">
+                    <GraduationCap className="h-8 w-8" />
+                  </div>
+                  <h2 className="text-2xl font-semibold text-foreground">
+                    Student Sign Up
+                  </h2>
+                  <p className="text-foreground-secondary">
+                    Enter the class code provided by your professor
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="classCode">Class Code</Label>
+                    <Input
+                      id="classCode"
+                      type="text"
+                      className="text-center text-xl font-mono tracking-wider uppercase"
+                      placeholder="e.g., ALI-CS101-FA25-01"
+                      value={classCode}
+                      onChange={(e) => setClassCode(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => e.key === "Enter" && handleClassCodeContinue()}
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-error/10 border border-error/20 text-error">
+                      <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm">{error}</p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setStep("role");
+                        setSelectedRole(null);
+                        setClassCode("");
+                        setError(null);
+                      }}
+                    >
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Back
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      onClick={handleClassCodeContinue}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Validating...
+                        </>
+                      ) : (
+                        "Continue"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Registration Form */}
+          {step === "register" && (
+            <div className="max-w-lg mx-auto">
+              <div className="bg-card border border-border rounded-xl p-8 space-y-6">
+                <div className="text-center space-y-2">
+                  <h2 className="text-2xl font-semibold text-foreground">
+                    Complete Your Registration
+                  </h2>
+                  <p className="text-foreground-secondary">
+                    {selectedRole === "professor"
+                      ? "Create your professor account"
+                      : "Create your student account"}
+                  </p>
+                </div>
+
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="John Doe"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      autoComplete="email"
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="usernameSchoolId">School ID</Label>
+                    <Input
+                      id="usernameSchoolId"
+                      type="number"
+                      placeholder="Enter your school ID (0-1000000)"
+                      value={usernameSchoolId}
+                      onChange={(e) => setUsernameSchoolId(e.target.value)}
+                      required
+                      min="0"
+                      max="1000000"
+                      disabled={isLoading}
+                    />
+                    <p className="text-xs text-foreground-tertiary">
+                      {selectedRole === "professor"
+                        ? "Your school ID will be used in class codes"
+                        : "Enter your student school ID number"}
+                    </p>
+                  </div>
+
+                  {selectedRole === "student" && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="Create a password (min 6 characters)"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          minLength={6}
+                          disabled={isLoading}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          placeholder="Re-enter your password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          required
+                          disabled={isLoading}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {error && (
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-error/10 border border-error/20 text-error">
+                      <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm">{error}</p>
+                    </div>
+                  )}
+
+                  {selectedRole === "professor" && (
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-info/10 border border-info/20 text-info">
+                      <Info className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm">
+                        A unique 6-character password will be generated for you
+                        upon registration.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        if (selectedRole === "student") {
+                          setStep("classCode");
+                        } else {
+                          setStep("role");
+                          setSelectedRole(null);
+                        }
+                        setError(null);
+                      }}
+                      disabled={isLoading}
+                    >
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Back
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="flex-1"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        "Create Account"
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Sign In Link */}
+          <div className="text-center">
+            <p className="text-foreground-secondary">
+              Already have an account?{" "}
+              <Link
+                href="/sign-in"
+                className="text-accent-orange hover:text-accent-orange-hover font-medium transition-colors"
+              >
+                Sign in here
+              </Link>
+            </p>
+          </div>
+        </div>
+      </main>
     </div>
-  )
+  );
 }

@@ -114,3 +114,4 @@ This is a fresh Next.js project with minimal setup. Not yet implemented:
 
   All routes are now properly configured!
 - Create new objects instead of mutating for any objects that can update and triggers React re-render
+- Anytime you add a new endpoint go ahead and regenerate Prisma Client so we dont get this error: The Prisma client wasn't properly regenerated after we added the new models.

@@ -9,6 +9,7 @@ const registerSchema = z.object({
   fullName: z.string().min(1),
   role: z.enum(['student', 'professor']),
   classCode: z.string().optional(),
+  password: z.string().min(6).optional(), // User-chosen password (for students)
   usernameSchoolId: z.string().regex(/^\d+$/).refine(
     (val) => {
       const num = parseInt(val, 10)
@@ -32,12 +33,12 @@ export async function POST(request: NextRequest) {
     const result = registerSchema.safeParse(body)
     if (!result.success) {
       return NextResponse.json(
-        { error: 'Invalid registration data', details: result.error.errors },
+        { error: 'Invalid registration data', details: result.error.issues },
         { status: 400 }
       )
     }
 
-    const { email, fullName, role, classCode, usernameSchoolId } = result.data
+    const { email, fullName, role, classCode, password: userPassword, usernameSchoolId } = result.data
 
     // Check if email already exists
     const existingUser = await db.user.findUnique({
@@ -85,8 +86,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate unique password
-    const password = await generateUniquePassword()
+    // Use provided password for students, generate for professors
+    let password: string
+    if (role === 'student' && userPassword) {
+      password = userPassword
+    } else {
+      password = await generateUniquePassword()
+    }
 
     // Create user
     const user = await db.user.create({
@@ -122,7 +128,7 @@ export async function POST(request: NextRequest) {
       await createSession(user)
     }
 
-    // Return user data with password
+    // Return user data (include password only for professors)
     return NextResponse.json({
       user: {
         id: user.id,
@@ -131,7 +137,7 @@ export async function POST(request: NextRequest) {
         fullName: user.fullName,
         usernameSchoolId: user.usernameSchoolId,
         isApproved: user.isApproved,
-        password, // Include generated password in response
+        password: role === 'professor' ? password : undefined, // Only return password for professors
       },
       message: role === 'professor'
         ? 'Professor account created successfully.'

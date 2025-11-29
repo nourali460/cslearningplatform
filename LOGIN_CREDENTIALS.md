@@ -3,7 +3,8 @@
 ## Current Users in Database
 
 ### 👑 Admin Account
-- **Email**: `subscriptionnova@gmail.com`
+- **Email**: `subscriptionsnova@gmail.com`
+- **Password**: `admin123`
 - **Role**: Administrator
 - **Status**: ✅ Approved
 - **Login URL**: http://localhost:3000/admin-login (Dedicated admin login)
@@ -63,8 +64,8 @@
 
 ### Admin Login:
 1. Go to http://localhost:3000/admin-login (or click "Administrator Login" in the homepage footer)
-2. Enter your admin email: `subscriptionnova@gmail.com`
-3. Enter your password
+2. Enter your admin email: `subscriptionsnova@gmail.com`
+3. Enter your password: `admin123`
 4. You'll be redirected to the admin dashboard
 
 ### Student/Professor Login:

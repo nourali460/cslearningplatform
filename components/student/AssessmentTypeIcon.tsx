@@ -56,11 +56,11 @@ export function AssessmentTypeBadge({ type }: { type: AssessmentType }) {
   }
 
   const bgColors = {
-    INTERACTIVE_LESSON: 'bg-primary',
-    LAB: 'bg-success',
-    EXAM: 'bg-danger',
-    QUIZ: 'bg-warning text-dark',
-    DISCUSSION: 'bg-info',
+    INTERACTIVE_LESSON: 'bg-info/10 text-info border border-info/20',
+    LAB: 'bg-success/10 text-success border border-success/20',
+    EXAM: 'bg-error/10 text-error border border-error/20',
+    QUIZ: 'bg-warning/10 text-warning border border-warning/20',
+    DISCUSSION: 'bg-info/10 text-info border border-info/20',
   }
 
   const names = {
@@ -72,7 +72,7 @@ export function AssessmentTypeBadge({ type }: { type: AssessmentType }) {
   }
 
   return (
-    <span className={`badge ${bgColors[type]}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${bgColors[type]}`}>
       {icons[type]} {names[type]}
     </span>
   )

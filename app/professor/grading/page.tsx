@@ -1,10 +1,17 @@
 'use client'
 
 import React, { useEffect, useState, useCallback } from 'react'
-import { Clock, CheckCircle, AlertCircle, FileText, Grid, List } from 'lucide-react'
+import { Clock, CheckCircle, AlertCircle, FileText, Grid, List, Loader2 } from 'lucide-react'
 import { AssessmentTypeBadge } from '@/components/student/AssessmentTypeIcon'
 import { GradeCell } from '@/components/professor/GradeCell'
 import { IndividualGradingModal } from '@/components/professor/IndividualGradingModal'
+import { GradebookModal } from '@/components/professor/GradebookModal'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Input } from '@/components/ui/input'
 
 type Submission = {
   id: string
@@ -24,7 +31,18 @@ type Submission = {
     type: string
     maxPoints: number
     dueAt: string | null
+    moduleItems?: Array<{
+      id: string
+      module: {
+        id: string
+        title: string
+        orderIndex: number
+      }
+    }>
   }
+  submissionText: string | null
+  submissionFiles: any
+  feedback: string | null
 }
 
 type GradebookStudent = {
@@ -66,7 +84,7 @@ type Class = {
 export default function GradingPage() {
   const [classes, setClasses] = useState<Class[]>([])
   const [selectedClassId, setSelectedClassId] = useState<string>('')
-  const [viewMode, setViewMode] = useState<'individual' | 'grid'>('individual')
+  const [showGradebookModal, setShowGradebookModal] = useState(false)
 
   // Individual view state
   const [submissions, setSubmissions] = useState<Submission[]>([])
@@ -175,16 +193,18 @@ export default function GradingPage() {
 
   useEffect(() => {
     if (selectedClassId) {
-      // Fetch assessments for both views
+      // Fetch assessments and submissions for the main view
       fetchAssessments()
-
-      if (viewMode === 'individual') {
-        fetchSubmissions()
-      } else {
-        fetchGradebook()
-      }
+      fetchSubmissions()
     }
-  }, [selectedClassId, viewMode, fetchSubmissions, fetchGradebook, fetchAssessments])
+  }, [selectedClassId, fetchSubmissions, fetchAssessments])
+
+  useEffect(() => {
+    if (showGradebookModal && selectedClassId) {
+      // Fetch gradebook data when modal is opened
+      fetchGradebook()
+    }
+  }, [showGradebookModal, selectedClassId, fetchGradebook])
 
   const handleGradeUpdate = async (
     submissionId: string | null,
@@ -323,18 +343,22 @@ export default function GradingPage() {
   // Filter assessments by category (for individual view)
   const filteredAssessments = categoryFilter === 'all'
     ? assessments
-    : assessments.filter(a => a.type === categoryFilter)
+    : assessments.filter(a => a && a.type === categoryFilter)
 
   // Filter submissions by category and search term (for individual view)
   const filteredSubmissions = submissions.filter((sub) => {
+    // Safety check
+    if (!sub.assessment || !sub.student) return false
+
     // Category filter
     const matchesCategory = categoryFilter === 'all' || sub.assessment.type === categoryFilter
 
     // Search filter
-    const studentName = sub.student.fullName || sub.student.email
+    const studentName = sub.student.fullName || sub.student.email || ''
+    const assessmentTitle = sub.assessment.title || ''
     const matchesSearch =
       studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sub.assessment.title.toLowerCase().includes(searchTerm.toLowerCase())
+      assessmentTitle.toLowerCase().includes(searchTerm.toLowerCase())
 
     return matchesCategory && matchesSearch
   })
@@ -357,15 +381,15 @@ export default function GradingPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'GRADED':
-        return <span className="badge bg-success">Graded</span>
+        return <Badge variant="success">Graded</Badge>
       case 'SUBMITTED':
-        return <span className="badge bg-warning text-dark">Pending</span>
+        return <Badge variant="warning">Pending</Badge>
       case 'DRAFT':
-        return <span className="badge bg-secondary">Draft</span>
+        return <Badge>Draft</Badge>
       case 'RETURNED':
-        return <span className="badge bg-info">Returned</span>
+        return <Badge variant="info">Returned</Badge>
       default:
-        return <span className="badge bg-secondary">{status}</span>
+        return <Badge>{status}</Badge>
     }
   }
 
@@ -378,503 +402,283 @@ export default function GradingPage() {
 
   if (loading && classes.length === 0) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '50vh' }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-accent-orange" />
       </div>
     )
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-4">
-        <h1 className="display-5 fw-bold text-primary mb-2">✅ Grading</h1>
-        <p className="text-muted lead">Grade student submissions and manage your gradebook</p>
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground mb-2">Grading</h1>
+        <p className="text-foreground-secondary">Grade student submissions and manage your gradebook</p>
       </div>
 
       {/* View Mode Toggle & Class Selector */}
-      <div className="card border-0 shadow-sm mb-4">
-        <div className="card-body">
-          <div className="row align-items-center g-3">
-            <div className="col-md-3">
-              <label className="form-label fw-semibold">View Mode</label>
-              <div className="btn-group w-100" role="group">
-                <button
-                  type="button"
-                  className={`btn ${viewMode === 'individual' ? 'btn-primary' : 'btn-outline-primary'}`}
-                  onClick={() => setViewMode('individual')}
-                >
-                  <List size={16} className="me-1" />
-                  Individual Grades
-                </button>
-                <button
-                  type="button"
-                  className={`btn ${viewMode === 'grid' ? 'btn-primary' : 'btn-outline-primary'}`}
-                  onClick={() => setViewMode('grid')}
-                >
-                  <Grid size={16} className="me-1" />
-                  All Grades
-                </button>
-              </div>
-            </div>
-
-            <div className="col-md-3">
-              <label className="form-label fw-semibold">Select Class</label>
-              <select
-                className="form-select"
-                value={selectedClassId}
-                onChange={(e) => setSelectedClassId(e.target.value)}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            <div className="md:col-span-1">
+              <label className="text-sm font-medium mb-2 block">Gradebook</label>
+              <Button
+                className="w-full"
+                onClick={() => {
+                  setSelectedSubmission(null) // Close individual modal if open
+                  setShowGradebookModal(true)
+                }}
+                disabled={!selectedClassId}
               >
-                {classes.map((classItem) => (
-                  <option key={classItem.id} value={classItem.id}>
-                    {classItem.classCode} - {classItem.course.title}
-                  </option>
-                ))}
-              </select>
+                <Grid className="mr-2 h-4 w-4" />
+                View All Grades
+              </Button>
             </div>
 
-            {viewMode === 'individual' && (
-              <>
-                <div className="col-md-2">
-                  <label className="form-label fw-semibold">Category</label>
-                  <select
-                    className="form-select"
-                    value={categoryFilter}
-                    onChange={(e) => {
-                      setCategoryFilter(e.target.value)
-                      setAssessmentFilter('all') // Reset assessment filter when category changes
-                    }}
-                  >
-                    <option value="all">All Categories</option>
-                    <option value="INTERACTIVE_LESSON">Interactive Lesson</option>
-                    <option value="LAB">Lab</option>
-                    <option value="EXAM">Exam</option>
-                    <option value="QUIZ">Quiz</option>
-                    <option value="DISCUSSION">Discussion</option>
-                  </select>
-                </div>
+            <div className="md:col-span-1">
+              <label className="text-sm font-medium mb-2 block">Select Class</label>
+              <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((classItem) => (
+                    <SelectItem key={classItem.id} value={classItem.id}>
+                      {classItem.classCode} - {classItem.course.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-                <div className="col-md-2">
-                  <label className="form-label fw-semibold">Assessment</label>
-                  <select
-                    className="form-select"
-                    value={assessmentFilter}
-                    onChange={(e) => setAssessmentFilter(e.target.value)}
-                  >
-                    <option value="all">All Assessments</option>
-                    {filteredAssessments.map((assessment) => (
-                      <option key={assessment.id} value={assessment.id}>
-                        {assessment.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div className="md:col-span-1">
+              <label className="text-sm font-medium mb-2 block">Category</label>
+              <Select
+                value={categoryFilter}
+                onValueChange={(value) => {
+                  setCategoryFilter(value)
+                  setAssessmentFilter('all')
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="INTERACTIVE_LESSON">Interactive Lesson</SelectItem>
+                  <SelectItem value="LAB">Lab</SelectItem>
+                  <SelectItem value="EXAM">Exam</SelectItem>
+                  <SelectItem value="QUIZ">Quiz</SelectItem>
+                  <SelectItem value="DISCUSSION">Discussion</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                <div className="col-md-2">
-                  <label className="form-label fw-semibold">Status Filter</label>
-                  <select
-                    className="form-select"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                  >
-                    <option value="all">All Statuses</option>
-                    <option value="SUBMITTED">Pending Only</option>
-                    <option value="GRADED">Graded Only</option>
-                    <option value="DRAFT">Drafts</option>
-                    <option value="RETURNED">Returned</option>
-                  </select>
-                </div>
+            <div className="md:col-span-1">
+              <label className="text-sm font-medium mb-2 block">Assessment</label>
+              <Select value={assessmentFilter} onValueChange={setAssessmentFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Assessments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Assessments</SelectItem>
+                  {filteredAssessments.map((assessment) => (
+                    <SelectItem key={assessment.id} value={assessment.id}>
+                      {assessment.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-                <div className="col-md-2">
-                  <label className="form-label fw-semibold">Search</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Search..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </>
-            )}
+            <div className="md:col-span-1">
+              <label className="text-sm font-medium mb-2 block">Status Filter</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="SUBMITTED">Pending Only</SelectItem>
+                  <SelectItem value="GRADED">Graded Only</SelectItem>
+                  <SelectItem value="DRAFT">Drafts</SelectItem>
+                  <SelectItem value="RETURNED">Returned</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="text-sm font-medium mb-2 block">Search</label>
+              <Input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {selectedClass && viewMode === 'individual' && (
+      {selectedClass && (
         <>
           {/* Statistics Cards */}
-          <div className="row g-4 mb-4">
-            <div className="col-md-3">
-              <div className="card border-0 shadow-sm h-100" style={{ borderLeft: '4px solid #0d6efd' }}>
-                <div className="card-body">
-                  <div className="d-flex align-items-center mb-2">
-                    <FileText className="text-primary me-2" size={20} />
-                    <h6 className="card-subtitle text-muted mb-0 small">Total Submissions</h6>
-                  </div>
-                  <h2 className="card-title mb-0">{totalSubmissions}</h2>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div className="card border-0 shadow-sm h-100" style={{ borderLeft: '4px solid #ffc107' }}>
-                <div className="card-body">
-                  <div className="d-flex align-items-center mb-2">
-                    <Clock className="text-warning me-2" size={20} />
-                    <h6 className="card-subtitle text-muted mb-0 small">Pending</h6>
-                  </div>
-                  <h2 className="card-title mb-0">{pendingSubmissions}</h2>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div className="card border-0 shadow-sm h-100" style={{ borderLeft: '4px solid #198754' }}>
-                <div className="card-body">
-                  <div className="d-flex align-items-center mb-2">
-                    <CheckCircle className="text-success me-2" size={20} />
-                    <h6 className="card-subtitle text-muted mb-0 small">Graded</h6>
-                  </div>
-                  <h2 className="card-title mb-0">{gradedSubmissions}</h2>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div className="card border-0 shadow-sm h-100" style={{ borderLeft: '4px solid #dc3545' }}>
-                <div className="card-body">
-                  <div className="d-flex align-items-center mb-2">
-                    <AlertCircle className="text-danger me-2" size={20} />
-                    <h6 className="card-subtitle text-muted mb-0 small">Late Submissions</h6>
-                  </div>
-                  <h2 className="card-title mb-0">{lateSubmissions}</h2>
-                </div>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="border-l-4 border-l-accent-purple">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-foreground-secondary">
+                  Total Submissions
+                </CardTitle>
+                <FileText className="h-5 w-5 text-accent-purple" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-foreground">{totalSubmissions}</div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-accent-orange">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-foreground-secondary">
+                  Pending
+                </CardTitle>
+                <Clock className="h-5 w-5 text-accent-orange" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-foreground">{pendingSubmissions}</div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-success">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-foreground-secondary">
+                  Graded
+                </CardTitle>
+                <CheckCircle className="h-5 w-5 text-success" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-foreground">{gradedSubmissions}</div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-error">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-foreground-secondary">
+                  Late Submissions
+                </CardTitle>
+                <AlertCircle className="h-5 w-5 text-error" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-foreground">{lateSubmissions}</div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Submissions Queue */}
-          <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-bottom">
-              <h5 className="card-title mb-0 fw-bold">Submission Queue</h5>
-            </div>
-            <div className="card-body p-0">
+          <Card>
+            <CardHeader>
+              <CardTitle>Submission Queue</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
               {filteredSubmissions.length === 0 ? (
-                <div className="text-center py-5">
-                  <FileText size={64} className="text-muted mb-3" />
-                  <h3 className="h5 text-muted">No Submissions Found</h3>
-                  <p className="text-muted mb-0">
+                <div className="text-center py-12 px-6">
+                  <FileText size={64} className="text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No Submissions Found</h3>
+                  <p className="text-muted-foreground">
                     {statusFilter === 'SUBMITTED'
                       ? 'All submissions have been graded!'
                       : 'No submissions match your filters.'}
                   </p>
                 </div>
               ) : (
-                <div className="table-responsive">
-                  <table className="table table-hover mb-0">
-                    <thead className="bg-light">
-                      <tr>
-                        <th className="py-3">Student</th>
-                        <th className="py-3">Assessment</th>
-                        <th className="py-3">Type</th>
-                        <th className="py-3">Submitted</th>
-                        <th className="py-3 text-center">Status</th>
-                        <th className="py-3 text-center">Score</th>
-                        <th className="py-3 text-end">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredSubmissions.map((submission) => (
-                        <tr key={submission.id}>
-                          <td className="py-3">
-                            <div className="fw-semibold">
-                              {submission.student.fullName || submission.student.email}
-                            </div>
-                            <small className="text-muted">{submission.student.email}</small>
-                          </td>
-                          <td className="py-3">
-                            <div className="fw-semibold">{submission.assessment.title}</div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Assessment</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Submitted</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                      <TableHead className="text-center">Score</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSubmissions.map((submission) => (
+                      <TableRow key={submission.id}>
+                        <TableCell>
+                          <div className="font-semibold">
+                            {submission.student.fullName || submission.student.email}
+                          </div>
+                          <div className="text-sm text-muted-foreground">{submission.student.email}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-semibold">{submission.assessment.title}</div>
+                          <div className="flex gap-2 mt-1">
+                            {submission.assessment.moduleItems && submission.assessment.moduleItems.length > 0 && (
+                              <Badge variant="purple" className="text-xs">
+                                Module {submission.assessment.moduleItems[0].module.orderIndex + 1}
+                              </Badge>
+                            )}
                             {submission.isLate && (
-                              <span className="badge bg-danger small">Late</span>
+                              <Badge variant="error" className="text-xs">Late</Badge>
                             )}
-                          </td>
-                          <td className="py-3">
-                            <AssessmentTypeBadge type={submission.assessment.type as any} />
-                          </td>
-                          <td className="py-3">
-                            <small>
-                              {new Date(submission.submittedAt).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </small>
-                          </td>
-                          <td className="py-3 text-center">{getStatusBadge(submission.status)}</td>
-                          <td className="py-3 text-center">
-                            {submission.totalScore !== null ? (
-                              <span className="fw-semibold">
-                                {Number(submission.totalScore).toFixed(1)} /{' '}
-                                {Number(submission.assessment.maxPoints).toFixed(0)}
-                              </span>
-                            ) : (
-                              <span className="text-muted">Not graded</span>
-                            )}
-                          </td>
-                          <td className="py-3 text-end">
-                            <button
-                              className="btn btn-sm btn-primary"
-                              onClick={() => setSelectedSubmission(submission)}
-                            >
-                              {submission.status === 'GRADED' ? 'View' : 'Grade'}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <AssessmentTypeBadge type={submission.assessment.type as any} />
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">
+                            {new Date(submission.submittedAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">{getStatusBadge(submission.status)}</TableCell>
+                        <TableCell className="text-center">
+                          {submission.totalScore !== null ? (
+                            <span className="font-semibold">
+                              {Number(submission.totalScore).toFixed(1)} /{' '}
+                              {Number(submission.assessment.maxPoints).toFixed(0)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">Not graded</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setShowGradebookModal(false) // Close gradebook modal if open
+                              setSelectedSubmission(submission)
+                            }}
+                          >
+                            {submission.status === 'GRADED' ? 'View' : 'Grade'}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </>
       )}
 
-      {selectedClass && viewMode === 'grid' && (
-        <>
-          {/* Debug Log */}
-          {debugLog.length > 0 && (
-            <div className="alert alert-info mb-3">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <strong>Debug Log:</strong>
-                <button
-                  className="btn btn-sm btn-outline-secondary"
-                  onClick={() => setDebugLog([])}
-                >
-                  Clear
-                </button>
-              </div>
-              {debugLog.map((log, idx) => (
-                <div key={idx} className="small font-monospace">{log}</div>
-              ))}
-            </div>
-          )}
-
-          <div className="card border-0 shadow-lg">
-            <div className="card-header bg-primary text-white py-3">
-              <h5 className="card-title mb-1 fw-bold">
-                <i className="bi bi-table me-2"></i>
-                Gradebook - {selectedClass.course.title}
-              </h5>
-              <small className="opacity-90">
-                <i className="bi bi-info-circle me-1"></i>
-                Click any cell to edit • Press Enter to save • Yellow = Late submission
-              </small>
-            </div>
-          <div className="card-body p-0">
-            {assessments.length === 0 ? (
-              <div className="text-center py-5">
-                <FileText size={64} className="text-muted mb-3" />
-                <h3 className="h5 text-muted">No Assessments Found</h3>
-                <p className="text-muted mb-3">
-                  This class doesn't have any assessments yet. Create some assessments to start grading!
-                </p>
-                <a href="/professor/assessments" className="btn btn-primary">
-                  <i className="bi bi-plus-circle me-2"></i>
-                  Create Assessment
-                </a>
-              </div>
-            ) : (
-            <div className="table-responsive" style={{ maxHeight: '75vh', overflowY: 'auto', overflowX: 'auto' }}>
-              <table className="table table-hover table-bordered mb-0" style={{ fontSize: '0.875rem' }}>
-                <thead className="table-light" style={{ position: 'sticky', top: 0, zIndex: 10 }}>
-                  <tr className="border-bottom border-2">
-                    <th
-                      rowSpan={2}
-                      className="align-middle text-start fw-bold border-end border-3"
-                      style={{
-                        position: 'sticky',
-                        left: 0,
-                        backgroundColor: '#f8f9fa',
-                        minWidth: '220px',
-                        maxWidth: '300px',
-                        padding: '16px 12px',
-                        zIndex: 11,
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      <i className="bi bi-person-fill me-2 text-primary"></i>
-                      Student Name
-                    </th>
-                    {Object.entries(assessmentsByType).map(([type, typeAssessments]) => (
-                      <th
-                        key={type}
-                        colSpan={typeAssessments.length + 1}
-                        className="text-center fw-bold text-uppercase bg-primary text-white border-start border-3"
-                        style={{
-                          padding: '12px 8px',
-                          fontSize: '0.85rem',
-                          letterSpacing: '0.5px'
-                        }}
-                      >
-                        {type.replace('_', ' ')}
-                      </th>
-                    ))}
-                    <th
-                      rowSpan={2}
-                      className="align-middle text-center fw-bold bg-success text-white border-start border-3"
-                      style={{
-                        minWidth: '120px',
-                        padding: '16px 8px',
-                      }}
-                    >
-                      <i className="bi bi-trophy-fill me-1"></i>
-                      Overall<br />Grade
-                    </th>
-                  </tr>
-                  <tr className="table-light">
-                    {Object.entries(assessmentsByType).map(([type, typeAssessments]) => (
-                      <React.Fragment key={`${type}-headers`}>
-                        {typeAssessments.map((assessment, idx) => (
-                          <th
-                            key={assessment.id}
-                            className={`text-center ${idx === 0 ? 'border-start border-3' : ''}`}
-                            style={{
-                              minWidth: '100px',
-                              maxWidth: '140px',
-                              padding: '10px 8px',
-                              fontSize: '0.75rem',
-                            }}
-                          >
-                            <div
-                              title={assessment.title}
-                              className="fw-semibold text-truncate"
-                              style={{ maxWidth: '120px', margin: '0 auto' }}
-                            >
-                              {assessment.title.substring(0, 15)}
-                              {assessment.title.length > 15 ? '...' : ''}
-                            </div>
-                            <div className="text-muted mt-1" style={{ fontSize: '0.7rem' }}>
-                              <i className="bi bi-star-fill me-1"></i>
-                              {assessment.maxPoints} pts
-                            </div>
-                          </th>
-                        ))}
-                        <th
-                          className="text-center fw-bold bg-light border-start border-2"
-                          style={{
-                            minWidth: '85px',
-                            padding: '10px 6px',
-                            fontSize: '0.8rem'
-                          }}
-                        >
-                          <i className="bi bi-calculator me-1"></i>
-                          Category<br />Avg
-                        </th>
-                      </React.Fragment>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {gradebookStudents.map((studentData, studentIdx) => (
-                    <tr key={studentData.student.id} className={studentIdx % 2 === 0 ? '' : 'table-active'}>
-                      <td
-                        className="fw-semibold text-start border-end border-3"
-                        style={{
-                          position: 'sticky',
-                          left: 0,
-                          backgroundColor: studentIdx % 2 === 0 ? 'white' : '#f8f9fa',
-                          padding: '12px 12px',
-                          zIndex: 1,
-                          minWidth: '220px',
-                          maxWidth: '300px',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}
-                        title={studentData.student.fullName || studentData.student.email}
-                      >
-                        <i className="bi bi-person-circle me-2 text-muted"></i>
-                        {studentData.student.fullName || studentData.student.email}
-                      </td>
-                      {Object.entries(assessmentsByType).map(([type, typeAssessments]) => (
-                        <React.Fragment key={`${studentData.student.id}-${type}`}>
-                          {typeAssessments.map((assessment, idx) => {
-                            const grade = studentData.grades[assessment.id]
-
-                            return (
-                              <td
-                                key={`${studentData.student.id}-${assessment.id}`}
-                                className={`text-center align-middle ${idx === 0 ? 'border-start border-3' : ''}`}
-                                style={{
-                                  padding: '6px',
-                                }}
-                              >
-                                {grade ? (
-                                  <GradeCell
-                                    studentId={studentData.student.id}
-                                    studentName={studentData.student.fullName || studentData.student.email}
-                                    assessmentId={assessment.id}
-                                    assessmentTitle={assessment.title}
-                                    submissionId={grade.submissionId}
-                                    initialScore={grade.score}
-                                    maxPoints={Number(assessment.maxPoints)}
-                                    isLate={grade.isLate}
-                                    onUpdate={handleGradeUpdate}
-                                  />
-                                ) : (
-                                  <span className="text-muted fw-light">-</span>
-                                )}
-                              </td>
-                            )
-                          })}
-                          <td
-                            className={`text-center fw-bold ${getGradeColor(studentData.categoryPercentages[type] || 0)}`}
-                            style={{
-                              backgroundColor: '#f8f9fa',
-                              borderLeft: '2px solid #dee2e6',
-                              padding: '8px 4px',
-                              fontSize: '0.9rem',
-                            }}
-                          >
-                            {studentData.categoryStats[type]?.count > 0
-                              ? `${studentData.categoryPercentages[type].toFixed(1)}%`
-                              : '-'}
-                          </td>
-                        </React.Fragment>
-                      ))}
-                      <td
-                        className={`text-center fw-bold ${getGradeColor(studentData.overallPercentage)}`}
-                        style={{
-                          backgroundColor: '#f0f0f0',
-                          borderLeft: '3px solid #dee2e6',
-                          padding: '8px 4px',
-                          fontSize: '1rem',
-                        }}
-                      >
-                        {studentData.overallPercentage.toFixed(1)}%
-                        <br />
-                        <small className="text-muted" style={{ fontSize: '0.75rem' }}>
-                          {studentData.totalEarned.toFixed(1)}/{studentData.totalPossible.toFixed(0)}
-                        </small>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            )}
-          </div>
-          <div className="card-footer bg-light text-center">
-            <small className="text-muted">
-              <strong>Tip:</strong> Yellow cells indicate late submissions •
-              Press Enter or click outside to save changes
-            </small>
-          </div>
-        </div>
-        </>
+      {/* Gradebook Modal */}
+      {showGradebookModal && selectedClass && (
+        <GradebookModal
+          classTitle={`${selectedClass.course.title} - ${selectedClass.classCode}`}
+          gradebookStudents={gradebookStudents}
+          assessments={assessments}
+          onClose={() => setShowGradebookModal(false)}
+          onGradeUpdate={handleGradeUpdate}
+        />
       )}
 
       {/* Individual Grading Modal */}

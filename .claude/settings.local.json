@@ -9,9 +9,16 @@
       "Bash(npm run build:*)",
       "Bash(curl:*)",
       "Bash(npx prisma:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "WebSearch",
+      "Bash(npm install)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "browser-tools",
+    "context7"
+  ],
+  "enableAllProjectMcpServers": true
 }
