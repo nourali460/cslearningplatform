@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { ModuleProgressBadge } from './ModuleCompletionBadge'
 import { ModuleItemRow } from './ModuleItemRow'
+import { DraggableModuleItems } from './DraggableModuleItems'
 import { cn } from '@/lib/utils'
 
 interface ModuleItem {
@@ -61,6 +62,8 @@ interface ModuleAccordionProps {
   onDeleteItem?: (moduleId: string, itemId: string) => void
   role?: 'student' | 'professor' | 'admin'
   showCompletion?: boolean
+  mode?: 'admin' | 'professor' | 'student'
+  classId?: string // Required for professor mode to handle reordering
 }
 
 export function ModuleAccordion({
@@ -71,7 +74,9 @@ export function ModuleAccordion({
   onEditItem,
   onDeleteItem,
   role = 'professor',
-  showCompletion = false
+  showCompletion = false,
+  mode = 'professor',
+  classId,
 }: ModuleAccordionProps) {
   const handleDeleteModule = async (module: Module) => {
     if (!onDeleteModule) return
@@ -87,6 +92,32 @@ export function ModuleAccordion({
       return
     }
     onDeleteItem(moduleId, itemId)
+  }
+
+  const handleReorderItems = async (moduleId: string, itemIds: string[]) => {
+    try {
+      const url =
+        mode === 'admin'
+          ? `/api/admin/module-templates/${moduleId}/items/reorder`
+          : `/api/professor/classes/${classId}/modules/${moduleId}/items/reorder`
+
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemIds }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to reorder items')
+      }
+
+      // Success - reload to show updated order
+      window.location.reload()
+    } catch (error) {
+      console.error('Error reordering items:', error)
+      throw error
+    }
   }
 
   const isModuleLocked = (unlockAt: Date | string | null | undefined) => {
@@ -233,6 +264,16 @@ export function ModuleAccordion({
                         No items in this module yet
                       </p>
                     </div>
+                  ) : (role === 'professor' || role === 'admin') ? (
+                    <DraggableModuleItems
+                      module={module}
+                      items={module.items}
+                      onEdit={onEditItem}
+                      onDelete={onDeleteItem ? handleDeleteItem : undefined}
+                      onReorder={handleReorderItems}
+                      role={role}
+                      showCompletion={showCompletion}
+                    />
                   ) : (
                     <div className="space-y-2">
                       {module.items

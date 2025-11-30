@@ -60,21 +60,61 @@ export default function LessonPage() {
               <Construction className="h-12 w-12 text-warning" />
             </div>
           </div>
-          <CardTitle className="text-2xl mb-2">Coming Soon: Interactive Lesson</CardTitle>
+          <CardTitle className="text-2xl mb-2">
+            {assessment ? (
+              <>
+                📖 {assessment.title}
+              </>
+            ) : (
+              '📖 Interactive Lesson'
+            )}
+          </CardTitle>
+          {assessment?.dueAt && (
+            <p className="text-sm text-muted-foreground">
+              Due: {new Date(assessment.dueAt).toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+              })}
+            </p>
+          )}
         </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-muted-foreground mb-4">
-            The interactive lesson interface is currently under development.
+        <CardContent className="text-center space-y-4">
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <p className="font-semibold mb-2">🚧 Feature Under Development</p>
+            <p className="text-sm text-muted-foreground">
+              <strong>Interactive Lesson</strong> - This feature allows you to complete guided learning modules with interactive elements, embedded videos, code demonstrations, and knowledge checks.
+            </p>
+          </div>
+
+          <p className="text-muted-foreground">
+            This assessment type is currently under development. Please contact your instructor for alternative learning materials or resources.
           </p>
-          <p className="text-sm text-muted-foreground mb-6">
-            For now, please check with your instructor for alternative learning materials.
-          </p>
-          <Button
-            onClick={() => router.push('/student/assignments')}
-            variant="outline"
-          >
-            Return to Assignments
-          </Button>
+
+          {assessment?.description && (
+            <div className="text-left bg-background-secondary/30 p-4 rounded-lg">
+              <p className="text-sm font-semibold mb-2">Assignment Description:</p>
+              <p className="text-sm text-muted-foreground">{assessment.description}</p>
+            </div>
+          )}
+
+          <div className="flex gap-3 justify-center pt-4">
+            <Button
+              onClick={() => router.push(`/student/assignments/${assessmentId}`)}
+              variant="outline"
+            >
+              <ArrowLeft size={16} className="mr-2" />
+              Back to Assignment
+            </Button>
+            <Button
+              onClick={() => router.push('/student/assignments')}
+            >
+              Return to All Assignments
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -86,6 +86,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
+    console.log('[Templates API] POST body:', body)
+
     const {
       courseId,
       title,
@@ -94,10 +96,13 @@ export async function POST(request: Request) {
       defaultMaxPoints,
       defaultSubmissionType,
       orderIndex,
+      isActive,
+      defaultIncludeInGradebook,
     } = body
 
     // Validation
     if (!courseId || !title || !type || !defaultSubmissionType) {
+      console.log('[Templates API] Validation failed:', { courseId, title, type, defaultSubmissionType })
       return NextResponse.json(
         { error: 'Missing required fields: courseId, title, type, defaultSubmissionType' },
         { status: 400 }
@@ -116,6 +121,17 @@ export async function POST(request: Request) {
       )
     }
 
+    console.log('[Templates API] Creating template with data:', {
+      courseId,
+      title,
+      type,
+      defaultMaxPoints: defaultMaxPoints || 100,
+      defaultSubmissionType,
+      orderIndex: orderIndex || 0,
+      isActive: isActive !== undefined ? isActive : true,
+      defaultIncludeInGradebook: defaultIncludeInGradebook !== undefined ? defaultIncludeInGradebook : true,
+    })
+
     const template = await db.assessmentTemplate.create({
       data: {
         courseId,
@@ -125,6 +141,8 @@ export async function POST(request: Request) {
         defaultMaxPoints: defaultMaxPoints || 100,
         defaultSubmissionType,
         orderIndex: orderIndex || 0,
+        isActive: isActive !== undefined ? isActive : true,
+        defaultIncludeInGradebook: defaultIncludeInGradebook !== undefined ? defaultIncludeInGradebook : true,
       },
       include: {
         course: {
@@ -135,6 +153,8 @@ export async function POST(request: Request) {
         },
       },
     })
+
+    console.log('[Templates API] Template created successfully:', template.id)
 
     return NextResponse.json(
       {
@@ -148,9 +168,12 @@ export async function POST(request: Request) {
       { status: 201 }
     )
   } catch (error) {
-    console.error('Error creating template:', error)
+    console.error('[Templates API] Error creating template:', error)
     return NextResponse.json(
-      { error: 'Failed to create template' },
+      {
+        error: 'Failed to create template',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }

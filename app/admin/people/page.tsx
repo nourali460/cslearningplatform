@@ -5,7 +5,6 @@ import {
   getFilterOptions,
   type AdminFilters,
 } from "@/lib/admin-filters";
-import { ProfessorApprovalToggle } from "@/components/admin/ProfessorApprovalToggle";
 import { AdminFilterBar } from "@/components/admin/AdminFilterBar";
 import { PasswordManager } from "@/components/admin/PasswordManager";
 import { Users, GraduationCap, UserCheck, Crown, AlertCircle } from "lucide-react";
@@ -100,7 +99,6 @@ export default async function PeoplePage({
         email: true,
         usernameSchoolId: true,
         password: true,
-        isApproved: true,
         createdAt: true,
         _count: {
           select: {
@@ -293,7 +291,6 @@ export default async function PeoplePage({
                       <TableHead className="text-right">
                         {hasFilters ? "Filtered " : ""}Classes Teaching
                       </TableHead>
-                      <TableHead>Approval Status</TableHead>
                       <TableHead>Joined</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -324,13 +321,6 @@ export default async function PeoplePage({
                           <Badge variant="info">
                             {professor._count.professorClasses}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <ProfessorApprovalToggle
-                            userId={professor.id}
-                            currentStatus={professor.isApproved}
-                            professorName={professor.fullName || professor.email}
-                          />
                         </TableCell>
                         <TableCell className="text-foreground-tertiary text-sm">
                           {new Date(professor.createdAt).toLocaleDateString(

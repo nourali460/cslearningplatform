@@ -59,6 +59,7 @@ export async function GET(
     const assessments = await db.assessment.findMany({
       where: {
         classId: classId,
+        includeInGradebook: true, // ✅ Only show assessments that should be in gradebook
       },
       include: {
         moduleItems: {

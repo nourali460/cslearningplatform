@@ -76,8 +76,23 @@ export async function uploadToGCS(
       mimeType,
     }
   } catch (error) {
-    console.error('Error uploading to GCS:', error)
-    throw new Error(`Failed to upload file to Google Cloud Storage: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    // Log full error details for debugging
+    console.error('Error uploading to GCS:', {
+      error,
+      errorType: typeof error,
+      errorConstructor: error?.constructor?.name,
+      errorCode: (error as any)?.code,
+      errorMessage: (error as any)?.message,
+      errorDetails: (error as any)?.errors,
+    })
+
+    // Extract detailed error message from GCS SDK errors
+    const errorMessage =
+      (error as any)?.message ||
+      (error as any)?.code ||
+      (typeof error === 'object' && error !== null ? JSON.stringify(error) : String(error))
+
+    throw new Error(`Failed to upload file to Google Cloud Storage: ${errorMessage}`)
   }
 }
 

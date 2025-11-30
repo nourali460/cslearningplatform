@@ -31,6 +31,7 @@ interface ModuleItemFormProps {
   onSubmit: (data: ModuleItemFormData) => Promise<void>
   assessments: Array<{ id: string; title: string; type: string; description: string | null }>
   classId: string
+  currentModuleId?: string // ✅ NEW: Current module (for edit mode)
   onAssessmentCreated?: () => Promise<void>
   initialData?: ModuleItemFormData
   mode?: 'create' | 'edit'
@@ -46,6 +47,7 @@ export interface ModuleItemFormData {
   orderIndex?: number
   isPublished?: boolean
   isRequired?: boolean
+  newModuleId?: string // ✅ NEW: For moving item to different module
 }
 
 export function ModuleItemForm({
@@ -54,6 +56,7 @@ export function ModuleItemForm({
   onSubmit,
   assessments,
   classId,
+  currentModuleId, // ✅ NEW
   onAssessmentCreated,
   initialData,
   mode = 'create',
@@ -61,9 +64,11 @@ export function ModuleItemForm({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showCreateAssessment, setShowCreateAssessment] = useState(false)
+  const [showEditAssessment, setShowEditAssessment] = useState(false) // ✅ NEW: For inline editing
   const [localAssessments, setLocalAssessments] = useState(assessments)
   const [assessmentKey, setAssessmentKey] = useState(0) // Force re-render key
   const [refreshing, setRefreshing] = useState(false) // Track when refreshing data
+  const [modules, setModules] = useState<any[]>([]) // ✅ NEW: Available modules
   const [formData, setFormData] = useState<ModuleItemFormData>(
     initialData || {
       itemType: 'PAGE',
@@ -79,6 +84,24 @@ export function ModuleItemForm({
       setFormData(initialData)
     }
   }, [initialData])
+
+  // ✅ NEW: Fetch modules for move functionality (only in edit mode)
+  useEffect(() => {
+    if (mode === 'edit' && classId) {
+      const fetchModules = async () => {
+        try {
+          const response = await fetch(`/api/professor/classes/${classId}/modules`)
+          if (response.ok) {
+            const data = await response.json()
+            setModules(data.modules || [])
+          }
+        } catch (error) {
+          console.error('Error fetching modules:', error)
+        }
+      }
+      fetchModules()
+    }
+  }, [mode, classId])
 
   // Update local assessments when prop changes
   useEffect(() => {
@@ -250,22 +273,52 @@ export function ModuleItemForm({
             />
           </div>
 
+          {/* ✅ NEW: Module Selector (only in edit mode) */}
+          {mode === 'edit' && modules.length > 0 && currentModuleId && (
+            <div className="space-y-2">
+              <Label htmlFor="moduleId">Module Location</Label>
+              <Select
+                value={formData.newModuleId || currentModuleId}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, newModuleId: value })
+                }
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {modules.map((module: any) => (
+                    <SelectItem key={module.id} value={module.id}>
+                      {module.title}
+                      {module.id === currentModuleId && ' (current)'}
+                      {!module.isPublished && ' (draft)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formData.newModuleId && formData.newModuleId !== currentModuleId && (
+                <p className="text-xs text-warning flex items-center gap-1">
+                  ⚠️ This item will be moved to a different module. Students will see it in the new location.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Change which module this item appears in
+              </p>
+            </div>
+          )}
+
           {/* Conditional Fields Based on Type */}
           {formData.itemType === 'PAGE' && (
-            <div className="space-y-2">
-              <Label htmlFor="pageContent">Page Content</Label>
-              <Textarea
-                id="pageContent"
-                placeholder="Enter page content (Markdown supported)..."
-                value={formData.pageContent || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, pageContent: e.target.value })
-                }
-                rows={8}
-                disabled={loading}
-              />
-              <p className="text-sm text-muted-foreground">
-                Supports Markdown formatting
+            <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed rounded-md bg-muted/30">
+              <p className="text-sm font-medium text-muted-foreground mb-2">
+                📄 PAGE content has moved!
+              </p>
+              <p className="text-xs text-muted-foreground text-center max-w-md mb-4">
+                To add page content to modules, first adopt a PAGE template from the Assessment Library, then use the <strong>ASSESSMENT</strong> type to link it here.
+              </p>
+              <p className="text-xs text-info">
+                💡 This ensures page content stays consistent and can be updated across all your classes
               </p>
             </div>
           )}
@@ -307,17 +360,31 @@ export function ModuleItemForm({
                     : "Don't see your assessment? Create it using the button below."}
                 </p>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCreateAssessment(true)}
-                disabled={loading}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Assessment
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCreateAssessment(true)}
+                  disabled={loading}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New
+                </Button>
+                {/* ✅ NEW: Edit Assessment Details Button */}
+                {formData.assessmentId && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowEditAssessment(true)}
+                    disabled={loading}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Edit Details
+                  </Button>
+                )}
+              </div>
 
               {/* Editable Description */}
               {formData.assessmentId && (() => {
@@ -492,6 +559,38 @@ export function ModuleItemForm({
           }}
         />
       )}
+
+      {/* ✅ NEW: Edit Assessment Modal */}
+      {showEditAssessment && formData.assessmentId && classId && (() => {
+        const selectedAssessment = localAssessments.find(
+          (a) => a.id === formData.assessmentId
+        )
+        if (!selectedAssessment) return null
+
+        return (
+          <CreateAssessmentModal
+            classId={classId}
+            assessment={selectedAssessment} // Pass assessment for edit mode
+            onClose={() => setShowEditAssessment(false)}
+            onSuccess={async (updatedAssessment) => {
+              console.log('[ModuleItemForm] Assessment updated:', updatedAssessment)
+
+              // Update local state with edited assessment
+              if (updatedAssessment) {
+                setLocalAssessments(prev =>
+                  prev.map(a => a.id === updatedAssessment.id ? updatedAssessment : a)
+                )
+                setAssessmentKey(prev => prev + 1)
+              }
+
+              // Refresh from server
+              if (onAssessmentCreated) {
+                await onAssessmentCreated()
+              }
+            }}
+          />
+        )
+      })()}
     </Dialog>
   )
 }

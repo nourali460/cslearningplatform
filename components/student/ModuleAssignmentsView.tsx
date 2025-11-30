@@ -103,7 +103,7 @@ export function ModuleAssignmentsView({ modulesByClass }: ModuleAssignmentsViewP
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {modulesByClass.map(({ module, class: classInfo }) => {
         const isExpanded = expandedModules.has(module.id)
         const progress = getModuleProgress(module)
@@ -111,27 +111,27 @@ export function ModuleAssignmentsView({ modulesByClass }: ModuleAssignmentsViewP
         return (
           <Card key={module.id} className="overflow-hidden">
             <CardHeader
-              className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+              className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors pb-3"
               onClick={() => toggleModule(module.id)}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   {/* Class Info */}
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-1">
                     <Badge variant="outline" className="text-xs">
                       {classInfo.course.code} • {classInfo.classCode}
                     </Badge>
                   </div>
 
                   {/* Module Title */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <Layers className="h-5 w-5 text-accent-purple flex-shrink-0" />
-                    <h3 className="text-lg font-bold truncate">{module.title}</h3>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Layers className="h-4 w-4 text-accent-purple flex-shrink-0" />
+                    <h3 className="text-base font-bold truncate">{module.title}</h3>
                   </div>
 
                   {/* Module Description */}
                   {module.description && (
-                    <p className="text-sm text-muted-foreground mb-3">
+                    <p className="text-sm text-muted-foreground mb-2">
                       {module.description}
                     </p>
                   )}
@@ -145,9 +145,9 @@ export function ModuleAssignmentsView({ modulesByClass }: ModuleAssignmentsViewP
                       </span>
                       <span>{progress}%</span>
                     </div>
-                    <div className="w-full bg-muted rounded-full h-2">
+                    <div className="w-full bg-muted rounded-full h-1.5">
                       <div
-                        className="bg-accent-purple h-2 rounded-full transition-all"
+                        className="bg-accent-purple h-1.5 rounded-full transition-all"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
@@ -156,20 +156,20 @@ export function ModuleAssignmentsView({ modulesByClass }: ModuleAssignmentsViewP
 
                 {/* Expand/Collapse Button */}
                 <Button variant="ghost" size="sm" className="flex-shrink-0">
-                  {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </Button>
               </div>
             </CardHeader>
 
             {/* Assignments List */}
             {isExpanded && (
-              <CardContent className="pt-4">
+              <CardContent className="pt-3">
                 {module.assessments.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     No assignments in this module yet
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {module.assessments
                       .sort((a, b) => {
                         // Sort by due date, then by title
@@ -186,19 +186,19 @@ export function ModuleAssignmentsView({ modulesByClass }: ModuleAssignmentsViewP
                         return (
                           <div
                             key={`${module.id}-${assignment.id}`}
-                            className="border rounded-lg p-4 hover:bg-muted/30 transition-colors"
+                            className="border rounded-lg p-3 hover:bg-muted/30 transition-colors"
                           >
                             <div className="flex items-start justify-between gap-4">
                               {/* Assignment Info */}
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                                   <AssessmentTypeBadge type={assignment.type as any} />
                                   {getAssessmentStatusBadge(assignment)}
                                 </div>
 
-                                <h4 className="font-semibold mb-2">{assignment.title}</h4>
+                                <h4 className="text-sm font-medium mb-1.5">{assignment.title}</h4>
 
-                                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                                   {/* Due Date */}
                                   {assignment.dueAt && (
                                     <div className="flex items-center gap-1">

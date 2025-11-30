@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { getSession } from '@/lib/session'
+import { requireProfessor, handleAuthError } from '@/lib/auth'
 
 /**
  * GET /api/professor/profile
@@ -8,33 +7,8 @@ import { getSession } from '@/lib/session'
  */
 export async function GET() {
   try {
-    // Check authentication
-    const session = await getSession()
-    if (!session || session.role !== 'professor') {
-      return NextResponse.json(
-        { error: 'Unauthorized - Professor access required' },
-        { status: 401 }
-      )
-    }
-
-    // Get professor details
-    const professor = await db.user.findUnique({
-      where: { id: session.userId },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        usernameSchoolId: true,
-        isApproved: true,
-      },
-    })
-
-    if (!professor) {
-      return NextResponse.json(
-        { error: 'Professor not found' },
-        { status: 404 }
-      )
-    }
+    // Check authentication using standardized helper
+    const professor = await requireProfessor()
 
     return NextResponse.json({
       professor: {
@@ -47,9 +21,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Error fetching professor profile:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch profile' },
-      { status: 500 }
-    )
+    return handleAuthError(error)
   }
 }

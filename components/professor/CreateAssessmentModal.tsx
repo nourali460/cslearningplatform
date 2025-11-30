@@ -38,9 +38,12 @@ export function CreateAssessmentModal({ classId, assessment, onClose, onSuccess 
     orderIndex: assessment?.orderIndex || null,
     rubricId: assessment?.rubricId || '',
     isPublished: assessment?.isPublished !== undefined ? assessment.isPublished : true,
+    includeInGradebook: assessment?.includeInGradebook !== undefined ? assessment.includeInGradebook : ((assessment?.type || 'LAB') !== 'PAGE'), // Default false for PAGE, true for others
+    moduleId: '', // ✅ NEW: Required module selection
   })
 
   const [rubrics, setRubrics] = useState<any[]>([])
+  const [modules, setModules] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
   const isEditing = !!assessment
@@ -49,7 +52,32 @@ export function CreateAssessmentModal({ classId, assessment, onClose, onSuccess 
     // Fetch available rubrics for this class
     // For now, we'll skip this as rubrics management will be added later
     setRubrics([])
+
+    // Fetch available modules for this class
+    const fetchModules = async () => {
+      try {
+        const response = await fetch(`/api/professor/classes/${classId}/modules`)
+        if (response.ok) {
+          const data = await response.json()
+          setModules(data.modules || [])
+        }
+      } catch (error) {
+        console.error('Error fetching modules:', error)
+      }
+    }
+    fetchModules()
   }, [classId])
+
+  // Auto-update includeInGradebook when type changes
+  useEffect(() => {
+    if (formData.type === 'PAGE' && formData.includeInGradebook) {
+      // Auto-uncheck when switching to PAGE type
+      setFormData(prev => ({ ...prev, includeInGradebook: false }))
+    } else if (formData.type !== 'PAGE' && !formData.includeInGradebook && !assessment) {
+      // Auto-check when switching away from PAGE type (only for new assessments)
+      setFormData(prev => ({ ...prev, includeInGradebook: true }))
+    }
+  }, [formData.type, assessment])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,6 +104,41 @@ export function CreateAssessmentModal({ classId, assessment, onClose, onSuccess 
       if (response.ok) {
         const result = await response.json()
         console.log('[CreateAssessmentModal] Created/Updated assessment:', result.assessment)
+
+        // ✅ NEW: If creating (not editing), automatically add to selected module
+        if (!isEditing && formData.moduleId) {
+          try {
+            const moduleItemResponse = await fetch(
+              `/api/professor/classes/${classId}/modules/${formData.moduleId}/items`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  itemType: 'ASSESSMENT',
+                  title: result.assessment.title,
+                  assessmentId: result.assessment.id,
+                  customDescription: result.assessment.description || '',
+                  orderIndex: 0,
+                  isPublished: result.assessment.isPublished,
+                  isRequired: true,
+                }),
+              }
+            )
+
+            if (!moduleItemResponse.ok) {
+              const error = await moduleItemResponse.json()
+              console.error('Failed to add assessment to module:', error)
+              alert(
+                `Assessment created but failed to add to module: ${error.error}. You can manually add it from the Modules page.`
+              )
+            } else {
+              console.log('[CreateAssessmentModal] Assessment successfully added to module')
+            }
+          } catch (error) {
+            console.error('Error adding assessment to module:', error)
+            alert('Assessment created but failed to add to module. You can manually add it from the Modules page.')
+          }
+        }
 
         // Pass the newly created/updated assessment to parent for optimistic update
         await onSuccess(result.assessment)
@@ -133,6 +196,48 @@ export function CreateAssessmentModal({ classId, assessment, onClose, onSuccess 
                 placeholder="Describe the assessment objectives and requirements..."
               />
             </div>
+
+            {/* ✅ NEW: Module Selection (only when creating) */}
+            {!isEditing && (
+              <div>
+                <label className="text-sm font-semibold mb-2 block">
+                  Module <span className="text-error">*</span>
+                </label>
+                {modules.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-6 border-2 border-dashed rounded-md bg-muted/30">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">
+                      No modules available
+                    </p>
+                    <p className="text-xs text-muted-foreground text-center max-w-sm">
+                      Create a module first before adding assessments. All assessments must be in a module for students to see them.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <Select
+                      value={formData.moduleId}
+                      onValueChange={(val) => setFormData({ ...formData, moduleId: val })}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a module for this assessment" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {modules.map((module: any) => (
+                          <SelectItem key={module.id} value={module.id}>
+                            {module.title}
+                            {!module.isPublished && ' (Draft)'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      💡 Students can only see assessments that are in published modules
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Assessment Type and Submission Type */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -304,8 +409,39 @@ export function CreateAssessmentModal({ classId, assessment, onClose, onSuccess 
                   </label>
                   <p className="text-xs text-foreground-secondary">
                     {formData.isPublished
-                      ? '✓ Students will see this assessment once you add it to a module'
-                      : '⚠️ Assessment will remain hidden from students even after adding to modules'}
+                      ? isEditing
+                        ? '✓ Students can see this assessment in published modules'
+                        : '✓ Students will see this assessment in the selected module'
+                      : '⚠️ Assessment will remain hidden from students even in modules'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Include in Gradebook */}
+              <div className="flex items-start gap-3 p-3 bg-background-secondary/50 rounded-lg mt-3">
+                <Checkbox
+                  id="includeInGradebook"
+                  checked={formData.includeInGradebook}
+                  onCheckedChange={(checked) =>
+                    setFormData({
+                      ...formData,
+                      includeInGradebook: checked === true,
+                    })
+                  }
+                />
+                <div className="flex-1">
+                  <label
+                    htmlFor="includeInGradebook"
+                    className="text-sm font-medium cursor-pointer block mb-1"
+                  >
+                    Include in Gradebook
+                  </label>
+                  <p className="text-xs text-foreground-secondary">
+                    {formData.includeInGradebook
+                      ? '✓ This assessment will appear as a gradebook column'
+                      : formData.type === 'PAGE'
+                      ? '⚠️ PAGE content is typically informational and not graded'
+                      : '⚠️ This assessment will not contribute to student grades'}
                   </p>
                 </div>
               </div>

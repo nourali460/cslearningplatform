@@ -106,126 +106,100 @@ export default async function StudentDashboard() {
         </p>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-accent-purple">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-foreground-secondary">
-              Enrolled Classes
-            </CardTitle>
-            <BookOpen className="h-5 w-5 text-accent-purple" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">{totalClasses}</div>
-            <p className="text-xs text-muted-foreground mt-1">Active enrollments</p>
-          </CardContent>
-        </Card>
+      {/* Compact Statistics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="border-l-4 border-l-accent-purple bg-background-secondary/30 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <BookOpen className="h-4 w-4 text-accent-purple" />
+            <span className="text-xs text-foreground-tertiary">Classes</span>
+          </div>
+          <div className="text-2xl font-bold text-foreground">{totalClasses}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Active</div>
+        </div>
 
-        <Card className="border-l-4 border-l-success">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-foreground-secondary">
-              Submissions
-            </CardTitle>
-            <FileText className="h-5 w-5 text-success" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">{totalSubmissions}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {gradedSubmissions.length} graded
-            </p>
-          </CardContent>
-        </Card>
+        <div className="border-l-4 border-l-success bg-background-secondary/30 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <FileText className="h-4 w-4 text-success" />
+            <span className="text-xs text-foreground-tertiary">Submissions</span>
+          </div>
+          <div className="text-2xl font-bold text-foreground">{totalSubmissions}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">{gradedSubmissions.length} graded</div>
+        </div>
 
-        <Card className="border-l-4 border-l-accent-orange">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-foreground-secondary">
-              Average Score
-            </CardTitle>
-            <TrendingUp className="h-5 w-5 text-accent-orange" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">{averageScore.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground mt-1">Across graded work</p>
-          </CardContent>
-        </Card>
+        <div className="border-l-4 border-l-accent-orange bg-background-secondary/30 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="h-4 w-4 text-accent-orange" />
+            <span className="text-xs text-foreground-tertiary">Average</span>
+          </div>
+          <div className="text-2xl font-bold text-foreground">{averageScore.toFixed(1)}%</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Graded work</div>
+        </div>
 
-        <Card className="border-l-4 border-l-info">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-foreground-secondary">
-              Completion
-            </CardTitle>
-            <Award className="h-5 w-5 text-info" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">{completionRate.toFixed(0)}%</div>
-            <p className="text-xs text-muted-foreground mt-1">Assignments completed</p>
-          </CardContent>
-        </Card>
+        <div className="border-l-4 border-l-info bg-background-secondary/30 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Award className="h-4 w-4 text-info" />
+            <span className="text-xs text-foreground-tertiary">Completion</span>
+          </div>
+          <div className="text-2xl font-bold text-foreground">{completionRate.toFixed(0)}%</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Done</div>
+        </div>
       </div>
 
       {/* Enrolled Classes */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>My Classes</CardTitle>
-              <CardDescription>Your current enrollments</CardDescription>
+              <CardTitle className="text-lg">My Classes</CardTitle>
+              <CardDescription className="text-xs">Your enrollments</CardDescription>
             </div>
             <Button asChild size="sm">
               <Link href="/student/enroll">
-                <Plus className="h-4 w-4 mr-2" />
-                Enroll in Class
+                <Plus className="h-3 w-3 mr-1.5" />
+                Enroll
               </Link>
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {enrollments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <BookOpen className="h-12 w-12 text-muted-foreground mb-3" />
-              <p className="text-muted-foreground mb-4">You are not enrolled in any classes yet.</p>
-              <Button asChild variant="outline">
+            <div className="flex flex-col items-center justify-center py-8">
+              <BookOpen className="h-10 w-10 text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground mb-3">You are not enrolled in any classes yet.</p>
+              <Button asChild variant="outline" size="sm">
                 <Link href="/student/enroll">
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-3 w-3 mr-1.5" />
                   Enroll in Your First Class
                 </Link>
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {enrollments.map((enrollment) => (
-                <Card key={enrollment.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="pt-6">
-                    <h6 className="font-semibold text-accent-purple mb-2">
-                      {enrollment.class.course.code}: {enrollment.class.course.title}
-                    </h6>
-                    <div className="text-sm text-muted-foreground space-y-1 mb-3">
-                      <div>
-                        {enrollment.class.term} {enrollment.class.year} · Section{' '}
-                        {enrollment.class.section}
-                      </div>
-                      <div>
-                        Professor: {enrollment.class.professor.fullName || enrollment.class.professor.email}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between mt-4">
-                      <code className="text-xs px-2 py-1 bg-muted rounded-lg">{enrollment.class.classCode}</code>
-                      <Badge variant="info">
-                        {enrollment.class._count.assessments} assessments
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div key={enrollment.id} className="border border-border rounded-lg p-3 bg-background-secondary/30 hover:shadow-sm transition-shadow">
+                  <div className="font-semibold text-sm text-accent-purple mb-1.5 leading-tight">
+                    {enrollment.class.course.code}: {enrollment.class.course.title}
+                  </div>
+                  <div className="text-xs text-muted-foreground mb-2">
+                    {enrollment.class.term} {enrollment.class.year} • Sec {enrollment.class.section} • {enrollment.class.professor.fullName || enrollment.class.professor.email}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <code className="text-xs px-1.5 py-0.5 bg-muted rounded">{enrollment.class.classCode}</code>
+                    <Badge variant="info" className="text-xs px-2 py-0">
+                      {enrollment.class._count.assessments}
+                    </Badge>
+                  </div>
+                </div>
               ))}
             </div>
           )}
         </CardContent>
         {enrollments.length > 0 && (
-          <CardFooter className="justify-end">
+          <CardFooter className="pt-3 pb-4 justify-end">
             <Button asChild variant="ghost" size="sm">
               <Link href="/student/classes">
-                View All Classes
-                <ArrowRight className="h-4 w-4 ml-2" />
+                View All
+                <ArrowRight className="h-3 w-3 ml-1.5" />
               </Link>
             </Button>
           </CardFooter>

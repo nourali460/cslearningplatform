@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,7 +21,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ModuleItemType } from '@prisma/client'
-import { AssessmentTemplateForm } from './AssessmentTemplateForm'
 
 interface ModuleItemTemplateFormProps {
   open: boolean
@@ -30,7 +28,6 @@ interface ModuleItemTemplateFormProps {
   onSubmit: (data: ModuleItemFormData) => Promise<void>
   assessmentTemplates: Array<{ id: string; title: string; type: string; description: string | null }>
   courseId: string
-  onAssessmentTemplateCreated?: () => Promise<void>
   initialData?: ModuleItemFormData
   mode?: 'create' | 'edit'
 }
@@ -53,15 +50,10 @@ export function ModuleItemTemplateForm({
   onSubmit,
   assessmentTemplates,
   courseId,
-  onAssessmentTemplateCreated,
   initialData,
   mode = 'create',
 }: ModuleItemTemplateFormProps) {
   const [loading, setLoading] = useState(false)
-  const [showCreateTemplate, setShowCreateTemplate] = useState(false)
-  const [localTemplates, setLocalTemplates] = useState(assessmentTemplates)
-  const [templateKey, setTemplateKey] = useState(0) // Force re-render key
-  const [refreshing, setRefreshing] = useState(false) // Track when refreshing data
   const [formData, setFormData] = useState<ModuleItemFormData>(
     initialData || {
       itemType: 'PAGE',
@@ -71,39 +63,6 @@ export function ModuleItemTemplateForm({
       isRequired: true,
     }
   )
-
-  // Update local templates when prop changes
-  useEffect(() => {
-    console.log('[ModuleItemTemplateForm useEffect] assessmentTemplates changed:', assessmentTemplates.length, assessmentTemplates.map(t => t.title))
-
-    // Only update if server data has MORE items than our local state (server confirmed our optimistic add)
-    // OR if it's the initial load
-    setLocalTemplates(prev => {
-      console.log('[ModuleItemTemplateForm useEffect] prev length:', prev.length, 'prop length:', assessmentTemplates.length)
-
-      // If prop has more items, server has confirmed our update - accept it
-      if (assessmentTemplates.length > prev.length) {
-        console.log('[ModuleItemTemplateForm useEffect] Server has more items, updating')
-        return assessmentTemplates
-      }
-
-      // If lengths are equal, check if content is different
-      if (prev.length === assessmentTemplates.length) {
-        const contentSame = prev.every((t, i) => t.id === assessmentTemplates[i]?.id)
-        if (!contentSame) {
-          console.log('[ModuleItemTemplateForm useEffect] Same length but different content, updating')
-          return assessmentTemplates
-        }
-      }
-
-      // Otherwise keep our optimistic local state
-      console.log('[ModuleItemTemplateForm useEffect] Keeping local state (may have optimistic add)')
-      return prev
-    })
-
-    setTemplateKey(prev => prev + 1) // Force Select to re-render
-    setRefreshing(false) // Done refreshing
-  }, [assessmentTemplates])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -203,19 +162,15 @@ export function ModuleItemTemplateForm({
 
           {/* Conditional Fields Based on Type */}
           {formData.itemType === 'PAGE' && (
-            <div className="space-y-2">
-              <Label htmlFor="pageContent">Page Content</Label>
-              <Textarea
-                id="pageContent"
-                placeholder="Enter page content (Markdown supported)..."
-                value={formData.pageContent || ''}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, pageContent: e.target.value }))
-                }
-                rows={6}
-              />
-              <p className="text-sm text-muted-foreground">
-                Supports Markdown formatting
+            <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed rounded-md bg-muted/30">
+              <p className="text-sm font-medium text-muted-foreground mb-2">
+                📄 PAGE content has moved!
+              </p>
+              <p className="text-xs text-muted-foreground text-center max-w-md mb-4">
+                To add page content to modules, use the <strong>ASSESSMENT</strong> type and link to a PAGE template. Create PAGE templates in the <strong>📄 Page Templates</strong> section.
+              </p>
+              <p className="text-xs text-info">
+                💡 This ensures consistent page content across all classes
               </p>
             </div>
           )}
@@ -223,13 +178,17 @@ export function ModuleItemTemplateForm({
           {formData.itemType === 'ASSESSMENT' && (
             <div className="space-y-2">
               <Label htmlFor="assessmentTemplateId">Link to Existing Assessment Template *</Label>
-              {refreshing ? (
-                <div className="flex items-center justify-center py-3 border rounded-md bg-muted/50">
-                  <p className="text-sm text-muted-foreground">Loading templates...</p>
+              {assessmentTemplates.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 border-2 border-dashed rounded-md bg-muted/30">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    No assessment templates available
+                  </p>
+                  <p className="text-xs text-muted-foreground text-center max-w-sm">
+                    Create assessment templates in the <strong>Assessment Templates</strong> tab first, then return here to add them to modules.
+                  </p>
                 </div>
               ) : (
                 <Select
-                  key={templateKey}
                   value={formData.assessmentTemplateId || ''}
                   onValueChange={(value) =>
                     setFormData((prev) => ({ ...prev, assessmentTemplateId: value }))
@@ -240,7 +199,7 @@ export function ModuleItemTemplateForm({
                     <SelectValue placeholder="Select an assessment template" />
                   </SelectTrigger>
                   <SelectContent>
-                    {localTemplates.map((template) => (
+                    {assessmentTemplates.map((template) => (
                       <SelectItem key={template.id} value={template.id}>
                         {template.title} ({template.type})
                       </SelectItem>
@@ -248,28 +207,10 @@ export function ModuleItemTemplateForm({
                   </SelectContent>
                 </Select>
               )}
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  {localTemplates.length === 0
-                    ? "No templates available. Create one using the button below."
-                    : "Don't see your template? Create it using the button below."}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCreateTemplate(true)}
-                disabled={loading}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Assessment Template
-              </Button>
 
               {/* Editable Description */}
               {formData.assessmentTemplateId && (() => {
-                const selectedTemplate = localTemplates.find(
+                const selectedTemplate = assessmentTemplates.find(
                   (t) => t.id === formData.assessmentTemplateId
                 )
                 if (!selectedTemplate) return null
@@ -395,54 +336,6 @@ export function ModuleItemTemplateForm({
           </DialogFooter>
         </form>
       </DialogContent>
-
-      {/* Create Assessment Template Modal */}
-      {showCreateTemplate && (
-        <AssessmentTemplateForm
-          courseId={courseId}
-          onClose={() => setShowCreateTemplate(false)}
-          onSave={async (newTemplate) => {
-            console.log('[ModuleItemTemplateForm onSave] START - Received template:', newTemplate?.id, newTemplate?.title)
-
-            // Optimistically add to local state IMMEDIATELY (if not duplicate)
-            if (newTemplate) {
-              console.log('[ModuleItemTemplateForm onSave] Before setState, localTemplates length:', localTemplates.length)
-
-              setLocalTemplates(prev => {
-                console.log('[ModuleItemTemplateForm onSave] Inside setState, prev length:', prev.length)
-
-                // Check if already exists to prevent duplicates
-                const exists = prev.some(t => t.id === newTemplate.id)
-                if (exists) {
-                  console.log('[ModuleItemTemplateForm onSave] Template', newTemplate.id, 'already exists, skipping')
-                  return prev
-                }
-
-                const newList = [...prev, newTemplate]
-                console.log('[ModuleItemTemplateForm onSave] Creating new list, new length:', newList.length)
-                return newList
-              })
-
-              setTemplateKey(prev => {
-                console.log('[ModuleItemTemplateForm onSave] Updating key from', prev, 'to', prev + 1)
-                return prev + 1
-              })
-              setRefreshing(false)
-
-              console.log('[ModuleItemTemplateForm onSave] After optimistic update')
-            }
-
-            // Still refresh from server for consistency
-            if (onAssessmentTemplateCreated) {
-              console.log('[ModuleItemTemplateForm onSave] Calling server refresh')
-              await onAssessmentTemplateCreated()
-              console.log('[ModuleItemTemplateForm onSave] Server refresh completed')
-            }
-
-            console.log('[ModuleItemTemplateForm onSave] END')
-          }}
-        />
-      )}
     </Dialog>
   )
 }

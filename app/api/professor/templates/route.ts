@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSession } from '@/lib/session'
+import { requireProfessor, handleAuthError } from '@/lib/auth'
 
 /**
  * GET /api/professor/templates?courseId=xxx
@@ -8,10 +8,7 @@ import { getSession } from '@/lib/session'
  */
 export async function GET(request: Request) {
   try {
-    const session = await getSession()
-    if (!session || session.role !== 'professor') {
-      return NextResponse.json({ error: 'Unauthorized - Professor access required' }, { status: 401 })
-    }
+    const professor = await requireProfessor()
 
     const { searchParams } = new URL(request.url)
     const courseId = searchParams.get('courseId')
@@ -25,7 +22,7 @@ export async function GET(request: Request) {
     const professorClass = await db.class.findFirst({
       where: {
         courseId,
-        professorId: session.userId,
+        professorId: professor.id,
       },
     })
 
@@ -63,9 +60,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ templates: serializedTemplates })
   } catch (error) {
     console.error('[Professor Templates API] Error fetching templates:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch templates', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    )
+    return handleAuthError(error)
   }
 }

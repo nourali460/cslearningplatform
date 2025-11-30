@@ -114,6 +114,8 @@ export async function PUT(
       maxAttempts,
       orderIndex,
       rubricId,
+      isPublished,
+      includeInGradebook,
     } = body
 
     // Generate new slug if title changed
@@ -143,6 +145,8 @@ export async function PUT(
         maxAttempts: maxAttempts !== undefined ? maxAttempts : existingAssessment.maxAttempts,
         orderIndex: orderIndex !== undefined ? orderIndex : existingAssessment.orderIndex,
         rubricId: rubricId !== undefined ? rubricId : existingAssessment.rubricId,
+        isPublished: isPublished !== undefined ? isPublished : existingAssessment.isPublished,
+        includeInGradebook: includeInGradebook !== undefined ? includeInGradebook : existingAssessment.includeInGradebook,
       },
       include: {
         rubric: {

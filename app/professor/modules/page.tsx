@@ -351,6 +351,8 @@ export default function ProfessorModulesPage() {
               }}
               onDeleteItem={handleDeleteItem}
               role="professor"
+              mode="professor"
+              classId={selectedClassId}
               showCompletion={false}
             />
           )}

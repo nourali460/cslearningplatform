@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getUser } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
 import { getUserQuota } from '@/lib/upload-helper'
 
 /**
@@ -17,7 +17,7 @@ import { getUserQuota } from '@/lib/upload-helper'
 export async function GET() {
   try {
     // Authenticate user
-    const user = await getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json(

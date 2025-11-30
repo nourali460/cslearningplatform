@@ -22,6 +22,7 @@ enum AssessmentType {
   EXAM
   QUIZ
   DISCUSSION
+  PAGE
 }
 
 enum SubmissionType {
@@ -172,6 +173,7 @@ model Assessment {
   allowMultipleAttempts Boolean        @default(false)
   maxAttempts           Int            @default(1)
   isPublished           Boolean        @default(true)
+  includeInGradebook    Boolean        @default(true)  // Whether this assessment appears in gradebook columns
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
@@ -287,12 +289,13 @@ model AssessmentTemplate {
   title                 String
   description           String?        // For DISCUSSION type: sanitized HTML prompt from RichTextEditor; for others: plain text description
   type                  AssessmentType @default(LAB)
-  defaultMaxPoints      Decimal        @default("100.00") @db.Decimal(5, 2)
-  defaultSubmissionType SubmissionType @default(BOTH)
-  orderIndex            Int            @default(0)
-  isActive              Boolean        @default(true)
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  defaultMaxPoints           Decimal        @default("100.00") @db.Decimal(5, 2)
+  defaultSubmissionType      SubmissionType @default(BOTH)
+  orderIndex                 Int            @default(0)
+  isActive                   Boolean        @default(true)
+  defaultIncludeInGradebook  Boolean        @default(true)  // Default for includeInGradebook when creating assessments from this template
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
 
   // ────────────────────────────────────────────────────────────────────────────
   // DISCUSSION TEMPLATE CONFIG (Used when type = DISCUSSION)

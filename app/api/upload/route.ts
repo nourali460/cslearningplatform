@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUser } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
 import { uploadFile } from '@/lib/upload-helper'
 
 /**
@@ -13,7 +13,7 @@ import { uploadFile } from '@/lib/upload-helper'
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
-    const user = await getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json(
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Authenticate user
-    const user = await getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json(

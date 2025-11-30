@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { AssessmentCard } from '@/components/student/AssessmentCard'
 import { ModuleAssignmentsView } from '@/components/student/ModuleAssignmentsView'
-import { Search, Filter, Grid, List, Loader2, X, Layers, BookOpen } from 'lucide-react'
+import { Search, Filter, LayoutGrid, List, Loader2, X, Layers, BookOpen } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -180,101 +180,70 @@ export default function AssignmentsPage() {
         <p className="text-foreground-secondary">View your assignments, track deadlines, and manage submissions.</p>
       </div>
 
-      {/* Class Selector */}
-      <Card className="border-l-4 border-l-accent-purple">
-        <CardContent className="py-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <div className="text-sm text-muted-foreground mb-1">Viewing Class:</div>
-              {currentClass && (
-                <div>
-                  <div className="text-lg font-semibold text-foreground">
-                    {currentClass.class.course.code} - {currentClass.class.course.title}
+      {/* Compact Header: Class + Stats + Quick Filters */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
+        {/* Left: Class Selector + Stats */}
+        <div className="lg:col-span-2">
+          <Card className="h-full">
+            <div className="p-3">
+              {/* Class Selector - Compact */}
+              <div className="flex items-center gap-3 mb-3 pb-3 border-b border-border">
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs text-muted-foreground mb-0.5">Class:</div>
+                  {currentClass && (
+                    <div className="font-semibold text-sm truncate">
+                      {currentClass.class.course.code} - {currentClass.class.course.title}
+                    </div>
+                  )}
+                </div>
+                <div className="w-48">
+                  <Select value={filters.classId} onValueChange={handleClassFilterChange}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Select Class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.map((classData) => (
+                        <SelectItem key={classData.class.id} value={classData.class.id}>
+                          {classData.class.course.code}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Stats Grid - Compact */}
+              {stats && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="border-l-4 border-l-accent-purple bg-background-secondary/30 rounded p-2">
+                    <div className="text-xs text-foreground-tertiary mb-1">Total</div>
+                    <div className="text-xl font-bold text-foreground">{stats.total}</div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {currentClass.class.term} {currentClass.class.year} • {currentClass.class.classCode}
+                  <div className="border-l-4 border-l-warning bg-background-secondary/30 rounded p-2">
+                    <div className="text-xs text-foreground-tertiary mb-1">Pending</div>
+                    <div className="text-xl font-bold text-warning">{stats.pending}</div>
+                  </div>
+                  <div className="border-l-4 border-l-info bg-background-secondary/30 rounded p-2">
+                    <div className="text-xs text-foreground-tertiary mb-1">Submitted</div>
+                    <div className="text-xl font-bold text-info">{stats.submitted}</div>
+                  </div>
+                  <div className="border-l-4 border-l-success bg-background-secondary/30 rounded p-2">
+                    <div className="text-xs text-foreground-tertiary mb-1">Graded</div>
+                    <div className="text-xl font-bold text-success">{stats.graded}</div>
                   </div>
                 </div>
               )}
             </div>
-            <div className="w-64">
-              <Select value={filters.classId} onValueChange={handleClassFilterChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((classData) => (
-                    <SelectItem key={classData.class.id} value={classData.class.id}>
-                      {classData.class.course.code} • {classData.class.classCode}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Stats Bar */}
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="border-l-4 border-l-accent-purple hover:border-border transition-none">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-foreground">{stats.total}</div>
-                <div className="text-xs text-muted-foreground mt-1">Total</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-warning hover:border-border transition-none">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-warning">{stats.pending}</div>
-                <div className="text-xs text-muted-foreground mt-1">Pending</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-info hover:border-border transition-none">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-info">{stats.submitted}</div>
-                <div className="text-xs text-muted-foreground mt-1">Submitted</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-success hover:border-border transition-none">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-success">{stats.graded}</div>
-                <div className="text-xs text-muted-foreground mt-1">Graded</div>
-              </div>
-            </CardContent>
           </Card>
         </div>
-      )}
 
-      {/* Search and Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-11 gap-3">
-            {/* Search */}
-            <div className="md:col-span-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-
-            {/* Type Filter */}
-            <div className="md:col-span-2">
+        {/* Right: Quick Filters */}
+        <Card className="p-3">
+          <div className="space-y-2">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Type</label>
               <Select value={filters.type} onValueChange={(value) => setFilters({ ...filters, type: value })}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
                 <SelectContent>
@@ -287,11 +256,10 @@ export default function AssignmentsPage() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Status Filter */}
-            <div className="md:col-span-2">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Status</label>
               <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -303,62 +271,68 @@ export default function AssignmentsPage() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Sort By */}
-            <div className="md:col-span-2">
-              <Select value={filters.sortBy} onValueChange={(value) => setFilters({ ...filters, sortBy: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dueDate">Due Date</SelectItem>
-                  <SelectItem value="title">Title</SelectItem>
-                  <SelectItem value="type">Type</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* View Mode & Clear */}
-            <div className="md:col-span-2 flex gap-2 justify-end">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">View</label>
               <div className="flex border rounded-lg overflow-hidden">
                 <Button
                   variant={viewMode === 'modules' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('modules')}
-                  className="rounded-none"
-                  title="Modules View"
+                  className="flex-1 rounded-none h-8"
                 >
-                  <Layers className="h-4 w-4" />
+                  <Layers className="h-3 w-3" />
                 </Button>
                 <Button
                   variant={viewMode === 'grid' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('grid')}
-                  className="rounded-none"
-                  title="Grid View"
+                  className="flex-1 rounded-none h-8"
                 >
-                  <Grid className="h-4 w-4" />
+                  <LayoutGrid className="h-3 w-3" />
                 </Button>
                 <Button
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('list')}
-                  className="rounded-none"
-                  title="List View"
+                  className="flex-1 rounded-none h-8"
                 >
-                  <List className="h-4 w-4" />
+                  <List className="h-3 w-3" />
                 </Button>
               </div>
-              {hasActiveFilters && (
-                <Button variant="outline" size="sm" onClick={clearFilters}>
-                  <X className="h-4 w-4 mr-2" />
-                  Clear
-                </Button>
-              )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
+
+      {/* Compact Search and Sort Bar */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search assignments..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+        <Select value={filters.sortBy} onValueChange={(value) => setFilters({ ...filters, sortBy: value })}>
+          <SelectTrigger className="w-40 h-9">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="dueDate">Due Date</SelectItem>
+            <SelectItem value="title">Title</SelectItem>
+            <SelectItem value="type">Type</SelectItem>
+          </SelectContent>
+        </Select>
+        {hasActiveFilters && (
+          <Button variant="outline" size="sm" onClick={clearFilters} className="h-9">
+            <X className="h-4 w-4 mr-1.5" />
+            Clear
+          </Button>
+        )}
+      </div>
 
       {/* Assignments Grid/List/Modules */}
       {viewMode === 'modules' ? (

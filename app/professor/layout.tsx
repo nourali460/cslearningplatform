@@ -3,16 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Sidebar } from '@/components/navigation/Sidebar'
-import { BookOpen, ClipboardList, CheckSquare, Library, GraduationCap, Layers } from 'lucide-react'
-
-const navItems = [
-  { href: '/professor', label: 'Dashboard', icon: BookOpen },
-  { href: '/professor/courses', label: 'Available Courses', icon: Library },
-  { href: '/professor/students', label: 'Students', icon: GraduationCap },
-  { href: '/professor/modules', label: 'Modules', icon: Layers },
-  { href: '/professor/assessments', label: 'Assessments', icon: ClipboardList },
-  { href: '/professor/grading', label: 'Grading', icon: CheckSquare },
-]
+import { professorNavItems } from '@/lib/navigation'
 
 export default function ProfessorLayout({
   children,
@@ -70,7 +61,7 @@ export default function ProfessorLayout({
   return (
     <div className="flex h-screen bg-background">
       <Sidebar
-        navItems={navItems}
+        navItems={professorNavItems}
         user={user}
         onLogout={handleLogout}
         title="Professor Portal"

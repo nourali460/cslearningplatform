@@ -7,7 +7,9 @@ import {
 import { AdminFilterBar } from "@/components/admin/AdminFilterBar";
 import { CoursesPageActions } from "@/components/admin/CoursesPageActions";
 import { CourseTemplateButton } from "@/components/admin/CourseTemplateButton";
-import { BookOpen, School, GraduationCap } from "lucide-react";
+import { BookOpen, School, GraduationCap, Layers, Award, Users, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -257,92 +259,90 @@ export default async function CoursesPage({
 
         {/* Courses Tab */}
         <TabsContent value="courses" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-accent-purple" />
-                Courses
-              </CardTitle>
-              <CardDescription>
-                {hasFilters
-                  ? "Courses that have class sections matching your filters"
-                  : "All courses in the catalog with their total class sections and enrolled students"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              {(hasFilters ? filteredCourses : courses).length === 0 ? (
-                <div className="text-center py-12 text-foreground-tertiary">
-                  <p className="mb-0">
-                    {hasFilters
-                      ? "No courses found with classes matching the selected filters"
-                      : "No courses in catalog"}
-                  </p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Subject</TableHead>
-                      <TableHead>Level</TableHead>
-                      <TableHead className="text-right">
-                        {hasFilters ? "Filtered " : ""}Classes
-                      </TableHead>
-                      <TableHead className="text-right">
-                        {hasFilters ? "Filtered " : ""}Students
-                      </TableHead>
-                      <TableHead className="text-right">Templates</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(hasFilters ? filteredCourses : courses).map((course) => (
-                      <TableRow key={course.id}>
-                        <TableCell>
-                          <code className="text-xs font-mono font-semibold text-accent-orange bg-accent-orange/10 px-2 py-1 rounded-lg">
-                            {course.code}
-                          </code>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {course.title}
-                        </TableCell>
-                        <TableCell className="text-foreground-secondary">
-                          {course.subject || "N/A"}
-                        </TableCell>
-                        <TableCell>
-                          {course.level ? (
-                            <Badge variant="purple">{course.level}</Badge>
-                          ) : (
-                            <span className="text-foreground-tertiary">N/A</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="info">{course._count.classes}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="info">
+          {(hasFilters ? filteredCourses : courses).length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <BookOpen className="h-12 w-12 text-muted-foreground mb-3" />
+                <h5 className="text-lg font-semibold text-foreground mb-2">
+                  No courses found
+                </h5>
+                <p className="text-sm text-muted-foreground text-center">
+                  {hasFilters
+                    ? "No courses found with classes matching the selected filters"
+                    : "No courses in catalog"}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {(hasFilters ? filteredCourses : courses).map((course) => (
+                <Link key={course.id} href={`/admin/courses/${course.id}`}>
+                  <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <Badge variant="purple" className="font-mono text-xs">
+                          {course.code}
+                        </Badge>
+                        {course.level && (
+                          <Badge variant="outline" className="text-xs">
+                            {course.level}
+                          </Badge>
+                        )}
+                      </div>
+                      <CardTitle className="text-base font-bold text-accent-purple leading-tight">
+                        {course.title}
+                      </CardTitle>
+                      {course.subject && (
+                        <CardDescription className="text-xs">
+                          {course.subject}
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {/* Stats Grid */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <School className="h-3 w-3 text-accent-purple" />
+                            <span className="text-xs text-muted-foreground">Classes</span>
+                          </div>
+                          <div className="text-lg font-bold text-foreground">
+                            {course._count.classes}
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <Users className="h-3 w-3 text-success" />
+                            <span className="text-xs text-muted-foreground">Students</span>
+                          </div>
+                          <div className="text-lg font-bold text-foreground">
                             {enrollmentMap.get(course.id) || 0}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="warning">
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <Award className="h-3 w-3 text-info" />
+                            <span className="text-xs text-muted-foreground">Templates</span>
+                          </div>
+                          <div className="text-lg font-bold text-foreground">
                             {course._count.assessmentTemplates}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <CourseTemplateButton
-                            courseId={course.id}
-                            courseName={`${course.code} - ${course.title}`}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Footer */}
+                      <div className="pt-2 border-t border-border flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">
+                          Click to manage
+                        </span>
+                        <ArrowRight className="h-4 w-4 text-accent-orange" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

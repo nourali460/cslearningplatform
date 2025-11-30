@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSession } from '@/lib/session'
+import { requireProfessor, handleAuthError } from '@/lib/auth'
 import { generateClassCode, classCodeExists } from '@/lib/class-code-generator'
 import { createAssessmentsFromTemplates } from '@/lib/assessment-templates'
 import { createModulesFromTemplates } from '@/lib/module-templates'
@@ -12,18 +12,12 @@ import { createModulesFromTemplates } from '@/lib/module-templates'
 export async function GET() {
   try {
     // Check authentication
-    const session = await getSession()
-    if (!session || session.role !== 'professor') {
-      return NextResponse.json(
-        { error: 'Unauthorized - Professor access required' },
-        { status: 401 }
-      )
-    }
+    const professor = await requireProfessor()
 
     // Fetch professor's classes
     const classes = await db.class.findMany({
       where: {
-        professorId: session.userId,
+        professorId: professor.id,
       },
       include: {
         course: {
@@ -68,10 +62,7 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Error fetching professor classes:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch classes' },
-      { status: 500 }
-    )
+    return handleAuthError(error)
   }
 }
 
@@ -81,39 +72,8 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
-    // Check authentication
-    const session = await getSession()
-    if (!session || session.role !== 'professor') {
-      return NextResponse.json(
-        { error: 'Unauthorized - Professor access required' },
-        { status: 401 }
-      )
-    }
-
-    // Get professor details
-    const professor = await db.user.findUnique({
-      where: { id: session.userId },
-      select: {
-        id: true,
-        usernameSchoolId: true,
-        fullName: true,
-        isApproved: true,
-      },
-    })
-
-    if (!professor) {
-      return NextResponse.json(
-        { error: 'Professor not found' },
-        { status: 404 }
-      )
-    }
-
-    if (!professor.isApproved) {
-      return NextResponse.json(
-        { error: 'Your account is pending admin approval' },
-        { status: 403 }
-      )
-    }
+    // Check authentication (includes isApproved check)
+    const professor = await requireProfessor()
 
     if (!professor.usernameSchoolId) {
       return NextResponse.json(
@@ -275,9 +235,6 @@ export async function POST(request: Request) {
     }, { status: 201 })
   } catch (error) {
     console.error('Error creating class:', error)
-    return NextResponse.json(
-      { error: 'Failed to create class. Please try again.' },
-      { status: 500 }
-    )
+    return handleAuthError(error)
   }
 }

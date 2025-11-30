@@ -29,6 +29,7 @@ export async function PUT(
       defaultSubmissionType,
       orderIndex,
       isActive,
+      defaultIncludeInGradebook,
     } = body
 
     // Check if template exists
@@ -62,6 +63,7 @@ export async function PUT(
         defaultSubmissionType: defaultSubmissionType || existingTemplate.defaultSubmissionType,
         orderIndex: orderIndex !== undefined ? orderIndex : existingTemplate.orderIndex,
         isActive: isActive !== undefined ? isActive : existingTemplate.isActive,
+        defaultIncludeInGradebook: defaultIncludeInGradebook !== undefined ? defaultIncludeInGradebook : existingTemplate.defaultIncludeInGradebook,
       },
       include: {
         course: {

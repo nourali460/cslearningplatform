@@ -60,21 +60,85 @@ export default function TakeAssessmentPage() {
               <Construction className="h-12 w-12 text-warning" />
             </div>
           </div>
-          <CardTitle className="text-2xl mb-2">Coming Soon: {assessment?.type.replace(/_/g, ' ')}</CardTitle>
+          <CardTitle className="text-2xl mb-2">
+            {assessment ? (
+              <>
+                {assessment.type === 'QUIZ' ? '❓' : '📝'} {assessment.title}
+              </>
+            ) : (
+              'Assessment'
+            )}
+          </CardTitle>
+          {assessment?.dueAt && (
+            <p className="text-sm text-muted-foreground">
+              Due: {new Date(assessment.dueAt).toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+              })}
+            </p>
+          )}
         </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-muted-foreground mb-4">
-            The quiz/exam interface is currently under development.
+        <CardContent className="text-center space-y-4">
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <p className="font-semibold mb-2">🚧 Feature Under Development</p>
+            <p className="text-sm text-muted-foreground">
+              {assessment?.type === 'QUIZ' ? (
+                <>
+                  <strong>Quiz</strong> - This feature will allow you to answer multiple-choice, short-answer, and coding questions with automatic grading and instant feedback upon submission.
+                </>
+              ) : assessment?.type === 'EXAM' ? (
+                <>
+                  <strong>Exam</strong> - This feature will provide a timed, proctored exam interface with various question types including multiple-choice, essays, and coding problems. Includes time tracking and secure submission.
+                </>
+              ) : (
+                <>
+                  <strong>{assessment?.type}</strong> - This assessment interface is under development.
+                </>
+              )}
+            </p>
+          </div>
+
+          <p className="text-muted-foreground">
+            This assessment type is currently under development. Please contact your instructor for the {assessment?.type === 'QUIZ' ? 'quiz link' : assessment?.type === 'EXAM' ? 'exam instructions and location' : 'assessment details'} or alternative format.
           </p>
-          <p className="text-sm text-muted-foreground mb-6">
-            For now, please check with your instructor for alternative submission methods.
-          </p>
-          <Button
-            onClick={() => router.push('/student/assignments')}
-            variant="outline"
-          >
-            Return to Assignments
-          </Button>
+
+          {assessment?.description && (
+            <div className="text-left bg-background-secondary/30 p-4 rounded-lg">
+              <p className="text-sm font-semibold mb-2">Assessment Description:</p>
+              <p className="text-sm text-muted-foreground">{assessment.description}</p>
+            </div>
+          )}
+
+          <div className="flex gap-2 justify-center text-sm text-muted-foreground">
+            {assessment?.maxPoints && (
+              <span>Points: <strong>{assessment.maxPoints}</strong></span>
+            )}
+            {assessment?.allowMultipleAttempts && (
+              <>
+                <span>•</span>
+                <span>Attempts: <strong>{assessment.maxAttempts || 'Unlimited'}</strong></span>
+              </>
+            )}
+          </div>
+
+          <div className="flex gap-3 justify-center pt-4">
+            <Button
+              onClick={() => router.push(`/student/assignments/${assessmentId}`)}
+              variant="outline"
+            >
+              <ArrowLeft size={16} className="mr-2" />
+              Back to Assignment
+            </Button>
+            <Button
+              onClick={() => router.push('/student/assignments')}
+            >
+              Return to All Assignments
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

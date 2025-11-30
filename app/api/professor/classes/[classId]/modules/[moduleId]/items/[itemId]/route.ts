@@ -69,6 +69,7 @@ export async function PUT(
       orderIndex,
       isPublished,
       isRequired,
+      newModuleId, // ✅ NEW: Allow moving to different module
     } = body
 
     // Type-specific validation
@@ -103,6 +104,23 @@ export async function PUT(
       }
     }
 
+    // ✅ NEW: If moving to a different module, validate the target module
+    if (newModuleId && newModuleId !== moduleId) {
+      const targetModule = await db.module.findFirst({
+        where: {
+          id: newModuleId,
+          classId: classId, // Must be in same class
+        },
+      })
+
+      if (!targetModule) {
+        return NextResponse.json(
+          { error: 'Target module not found in this class' },
+          { status: 404 }
+        )
+      }
+    }
+
     // Update module item
     const item = await db.moduleItem.update({
       where: { id: itemId },
@@ -116,6 +134,8 @@ export async function PUT(
         ...(orderIndex !== undefined && { orderIndex }),
         ...(isPublished !== undefined && { isPublished }),
         ...(isRequired !== undefined && { isRequired }),
+        // ✅ NEW: Allow changing module
+        ...(newModuleId && newModuleId !== moduleId && { moduleId: newModuleId }),
       },
       include: {
         assessment: {

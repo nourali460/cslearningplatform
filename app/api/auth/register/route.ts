@@ -22,8 +22,8 @@ const registerSchema = z.object({
 /**
  * POST /api/auth/register
  * Register a new student or professor
- * Students: require classCode for validation
- * Professors: require username, set isApproved=false
+ * Students: require classCode for auto-enrollment
+ * Professors: auto-approved, no manual approval needed
  */
 export async function POST(request: NextRequest) {
   try {
@@ -123,10 +123,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create session for approved users only
-    if (user.isApproved) {
-      await createSession(user)
-    }
+    // Create session for new user
+    await createSession(user)
 
     // Return user data (include password only for professors)
     return NextResponse.json({

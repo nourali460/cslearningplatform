@@ -60,21 +60,67 @@ export default function SubmitAssessmentPage() {
               <Construction className="h-12 w-12 text-warning" />
             </div>
           </div>
-          <CardTitle className="text-2xl mb-2">Coming Soon: Lab Submission</CardTitle>
+          <CardTitle className="text-2xl mb-2">
+            {assessment ? (
+              <>
+                🧪 {assessment.title}
+              </>
+            ) : (
+              '🧪 Lab Assignment'
+            )}
+          </CardTitle>
+          {assessment?.dueAt && (
+            <p className="text-sm text-muted-foreground">
+              Due: {new Date(assessment.dueAt).toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+              })}
+            </p>
+          )}
         </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-muted-foreground mb-4">
-            The lab submission interface is currently under development.
+        <CardContent className="text-center space-y-4">
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <p className="font-semibold mb-2">🚧 Feature Under Development</p>
+            <p className="text-sm text-muted-foreground">
+              <strong>Lab Assignment</strong> - This feature will allow you to submit code files, run automated tests, receive instant feedback on your implementation, and track your test results in real-time.
+            </p>
+          </div>
+
+          <p className="text-muted-foreground">
+            This assessment type is currently under development. Please submit your lab work via the method specified by your instructor (email, file upload system, or other platform).
           </p>
-          <p className="text-sm text-muted-foreground mb-6">
-            For now, please check with your instructor for alternative submission methods.
-          </p>
-          <Button
-            onClick={() => router.push('/student/assignments')}
-            variant="outline"
-          >
-            Return to Assignments
-          </Button>
+
+          {assessment?.description && (
+            <div className="text-left bg-background-secondary/30 p-4 rounded-lg">
+              <p className="text-sm font-semibold mb-2">Assignment Description:</p>
+              <p className="text-sm text-muted-foreground">{assessment.description}</p>
+            </div>
+          )}
+
+          {assessment?.maxPoints && (
+            <p className="text-sm text-muted-foreground">
+              Points: <strong>{assessment.maxPoints}</strong>
+            </p>
+          )}
+
+          <div className="flex gap-3 justify-center pt-4">
+            <Button
+              onClick={() => router.push(`/student/assignments/${assessmentId}`)}
+              variant="outline"
+            >
+              <ArrowLeft size={16} className="mr-2" />
+              Back to Assignment
+            </Button>
+            <Button
+              onClick={() => router.push('/student/assignments')}
+            >
+              Return to All Assignments
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

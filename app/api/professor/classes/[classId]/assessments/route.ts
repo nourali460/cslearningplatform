@@ -159,6 +159,7 @@ export async function POST(
       orderIndex,
       rubricId,
       isPublished,
+      includeInGradebook,
     } = body
 
     // Validation
@@ -191,6 +192,7 @@ export async function POST(
         orderIndex: orderIndex || null,
         rubricId: rubricId || null,
         isPublished: isPublished !== undefined ? isPublished : true, // ✅ Use form value or default to true
+        includeInGradebook: includeInGradebook !== undefined ? includeInGradebook : true, // ✅ Use form value or default to true (PAGE will be false via UI)
       },
       include: {
         rubric: {

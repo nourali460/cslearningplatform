@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSession } from '@/lib/session'
+import { requireProfessor, handleAuthError } from '@/lib/auth'
 
 /**
  * GET /api/professor/classes/[classId]/students
@@ -12,13 +12,7 @@ export async function GET(
 ) {
   try {
     // Check authentication
-    const session = await getSession()
-    if (!session || session.role !== 'professor') {
-      return NextResponse.json(
-        { error: 'Unauthorized - Professor access required' },
-        { status: 401 }
-      )
-    }
+    const professor = await requireProfessor()
 
     const { classId } = await params
 
@@ -49,7 +43,7 @@ export async function GET(
       )
     }
 
-    if (classItem.professorId !== session.userId) {
+    if (classItem.professorId !== professor.id) {
       return NextResponse.json(
         { error: 'You do not have access to this class' },
         { status: 403 }
@@ -106,9 +100,6 @@ export async function GET(
     })
   } catch (error) {
     console.error('Error fetching class students:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch students' },
-      { status: 500 }
-    )
+    return handleAuthError(error)
   }
 }

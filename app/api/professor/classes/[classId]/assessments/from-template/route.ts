@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSession } from '@/lib/session'
+import { requireProfessor, handleAuthError } from '@/lib/auth'
 
 /**
  * POST /api/professor/classes/[classId]/assessments/from-template
@@ -11,10 +11,7 @@ export async function POST(
   props: { params: Promise<{ classId: string }> }
 ) {
   try {
-    const session = await getSession()
-    if (!session || session.role !== 'professor') {
-      return NextResponse.json({ error: 'Unauthorized - Professor access required' }, { status: 401 })
-    }
+    const professor = await requireProfessor()
 
     const params = await props.params
     const { classId } = params
@@ -42,7 +39,7 @@ export async function POST(
       return NextResponse.json({ error: 'Class not found' }, { status: 404 })
     }
 
-    if (classRecord.professorId !== session.userId) {
+    if (classRecord.professorId !== professor.id) {
       return NextResponse.json({ error: 'Unauthorized - Not your class' }, { status: 403 })
     }
 
@@ -94,6 +91,7 @@ export async function POST(
         submissionType: template.defaultSubmissionType,
         orderIndex: nextOrderIndex,
         isPublished: true, // ✅ Explicit default - assessments are published by default
+        includeInGradebook: template.defaultIncludeInGradebook, // ✅ Copy from template default
       },
     })
 
@@ -119,9 +117,6 @@ export async function POST(
     )
   } catch (error) {
     console.error('[Professor Assessment] Error creating assessment from template:', error)
-    return NextResponse.json(
-      { error: 'Failed to create assessment from template', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    )
+    return handleAuthError(error)
   }
 }

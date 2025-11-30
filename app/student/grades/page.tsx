@@ -263,174 +263,128 @@ export default function GradesPage() {
         </p>
       </div>
 
-      {/* Class Selector */}
-      <Card className="mb-4 border-l-4 border-l-accent-purple">
-        <div className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <div className="text-sm text-muted-foreground mb-1">Viewing Grades For:</div>
-              {currentClassData && (
-                <div>
-                  <div className="text-lg font-semibold text-foreground">
-                    {currentClassData.courseCode} - {currentClassData.courseTitle}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {currentClassData.classCode}
-                  </div>
+      {/* Compact Header: Class Info + Stats + Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
+        {/* Left: Class Selector + Quick Stats */}
+        <div className="lg:col-span-2">
+          <Card className="h-full">
+            <div className="p-3">
+              {/* Class Selector - Compact */}
+              <div className="flex items-center gap-3 mb-3 pb-3 border-b border-border">
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs text-muted-foreground mb-0.5">Viewing Grades For:</div>
+                  {currentClassData && (
+                    <div className="font-semibold text-sm truncate">
+                      {currentClassData.courseCode} - {currentClassData.courseTitle}
+                    </div>
+                  )}
                 </div>
-              )}
+                <div className="w-48">
+                  <select
+                    className="input-base w-full text-sm py-1.5"
+                    value={selectedClass}
+                    onChange={(e) => handleClassChange(e.target.value)}
+                  >
+                    {data.classSummary.map((classData) => (
+                      <option key={classData.classId} value={classData.classId}>
+                        {classData.courseCode}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Stats Grid - Compact 2x2 */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="border-l-4 border-l-accent-orange bg-background-secondary/30 rounded p-2">
+                  <div className="flex items-center gap-1 mb-1">
+                    <Trophy className="text-accent-orange" size={10} />
+                    <small className="text-foreground-tertiary text-xs">Avg</small>
+                  </div>
+                  <div className="font-bold text-lg">{filteredStats.average.toFixed(1)}%</div>
+                  <Badge variant={getGradeBadgeVariant(filteredStats.average)} className="text-xs px-2 py-0.5 mt-1">
+                    {getLetterGrade(filteredStats.average)}
+                  </Badge>
+                </div>
+
+                <div className="border-l-4 border-l-success bg-background-secondary/30 rounded p-2">
+                  <div className="flex items-center gap-1 mb-1">
+                    <Target className="text-success" size={10} />
+                    <small className="text-foreground-tertiary text-xs">Points</small>
+                  </div>
+                  <div className="font-bold text-lg">{filteredStats.totalPointsEarned.toFixed(0)}</div>
+                  <small className="text-foreground-tertiary text-xs">/ {filteredStats.totalPointsPossible.toFixed(0)}</small>
+                </div>
+
+                <div className="border-l-4 border-l-warning bg-background-secondary/30 rounded p-2">
+                  <div className="flex items-center gap-1 mb-1">
+                    <TrendingUp className="text-warning" size={10} />
+                    <small className="text-foreground-tertiary text-xs">Graded</small>
+                  </div>
+                  <div className="font-bold text-lg">{filteredStats.totalGradedAssignments}</div>
+                  <small className="text-foreground-tertiary text-xs">Done</small>
+                </div>
+
+                <div className="border-l-4 border-l-info bg-background-secondary/30 rounded p-2">
+                  <div className="flex items-center gap-1 mb-1">
+                    <Award className="text-info" size={10} />
+                    <small className="text-foreground-tertiary text-xs">Types</small>
+                  </div>
+                  <div className="font-bold text-lg">{filteredTypeBreakdown.length}</div>
+                  <small className="text-foreground-tertiary text-xs">Active</small>
+                </div>
+              </div>
             </div>
-            <div className="w-64">
-              <select
-                className="input-base w-full"
-                value={selectedClass}
-                onChange={(e) => handleClassChange(e.target.value)}
-              >
-                {data.classSummary.map((classData) => (
-                  <option key={classData.classId} value={classData.classId}>
-                    {classData.courseCode} • {classData.classCode}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          </Card>
         </div>
-      </Card>
 
-      {/* Overall Statistics Cards - Compact */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
-        <Card className="p-2 border-l-4 border-l-accent-orange hover:border-border transition-none">
-          <div className="flex items-center justify-between mb-1">
-            <small className="text-foreground-tertiary text-xs">Class Average</small>
-            <Trophy className="text-accent-orange" size={12} />
-          </div>
-          <h5 className="text-xl font-semibold mb-2">{filteredStats.average.toFixed(1)}%</h5>
-          <Badge variant={getGradeBadgeVariant(filteredStats.average)} className="grade">
-            {getLetterGrade(filteredStats.average)}
-          </Badge>
-        </Card>
-
-        <Card className="p-2 border-l-4 border-l-success hover:border-border transition-none">
-          <div className="flex items-center justify-between mb-1">
-            <small className="text-foreground-tertiary text-xs">Points</small>
-            <Target className="text-success" size={12} />
-          </div>
-          <h5 className="text-xl font-semibold mb-0">{filteredStats.totalPointsEarned.toFixed(0)}</h5>
-          <small className="text-foreground-tertiary text-xs">/ {filteredStats.totalPointsPossible.toFixed(0)}</small>
-        </Card>
-
-        <Card className="p-2 border-l-4 border-l-warning hover:border-border transition-none">
-          <div className="flex items-center justify-between mb-1">
-            <small className="text-foreground-tertiary text-xs">Graded</small>
-            <TrendingUp className="text-warning" size={12} />
-          </div>
-          <h5 className="text-xl font-semibold mb-0">{filteredStats.totalGradedAssignments}</h5>
-          <small className="text-foreground-tertiary text-xs">Completed</small>
-        </Card>
-
-        <Card className="p-2 border-l-4 border-l-info hover:border-border transition-none">
-          <div className="flex items-center justify-between mb-1">
-            <small className="text-foreground-tertiary text-xs">Assignment Types</small>
-            <Award className="text-info" size={12} />
-          </div>
-          <h5 className="text-xl font-semibold mb-0">{filteredTypeBreakdown.length}</h5>
-          <small className="text-foreground-tertiary text-xs">Types</small>
-        </Card>
-      </div>
-
-      {/* Grade Breakdown by Assessment Type - Compact */}
-      {filteredTypeBreakdown.length > 0 && (
-        <Card className="mb-2">
-          <CardHeader className="py-2 px-3">
-            <CardTitle className="text-sm">
-              📊 Grade Breakdown by Assessment Type
-            </CardTitle>
-          </CardHeader>
-          <div className="p-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {/* Left: Pie Chart */}
-              <div>
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie
-                      data={pieChartData}
-                      cx="50%"
-                      cy="45%"
-                      outerRadius={70}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {pieChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: number, name: string, props: any) => [
-                        `${value.toFixed(1)}% (${props.payload.earned}/${props.payload.possible} pts)`,
-                        name
-                      ]}
-                    />
-                    <Legend
-                      verticalAlign="bottom"
-                      height={36}
-                      iconType="circle"
-                      wrapperStyle={{
-                        fontSize: '11px',
-                        paddingTop: '8px',
-                        color: 'rgb(115, 115, 115)'
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Right: Performance Breakdown */}
-              <div>
-                <h6 className="font-bold mb-2 text-sm">Performance by Type</h6>
-                <div className="flex flex-col gap-2">
-                  {filteredTypeBreakdown.map((item) => {
-                    const typeColor = COLORS[item.type as keyof typeof COLORS]
-                    const typeName = TYPE_NAMES[item.type as keyof typeof TYPE_NAMES]
-                    return (
-                      <div key={item.type}>
-                        <div className="flex justify-between items-center mb-1">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 rounded-sm"
-                              style={{ backgroundColor: typeColor }}
-                            ></div>
-                            <span className="font-semibold text-xs">{typeName}</span>
-                          </div>
-                          <span className="text-gray-500 text-xs">
-                            {item.count} assignment{item.count !== 1 ? 's' : ''}
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1">
-                          <div
-                            className="h-1.5 rounded-full"
-                            style={{
-                              width: `${item.average}%`,
-                              backgroundColor: typeColor,
-                            }}
-                          ></div>
-                        </div>
-                        <div className="flex justify-between">
-                          <small className="text-gray-500 text-xs">
-                            {item.earned.toFixed(0)} / {item.possible.toFixed(0)} pts
-                          </small>
-                          <small className="font-semibold text-xs">
-                            {item.average.toFixed(1)}%
-                          </small>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+        {/* Right: Breakdown Chart - Compact */}
+        {filteredTypeBreakdown.length > 0 && (
+          <Card className="p-2">
+            <div className="text-xs font-semibold mb-2 px-1">📊 Type Breakdown</div>
+            <ResponsiveContainer width="100%" height={120}>
+              <PieChart>
+                <Pie
+                  data={pieChartData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={45}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {pieChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: number, name: string, props: any) => [
+                    `${value.toFixed(1)}%`,
+                    name
+                  ]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="px-1 space-y-1.5">
+              {filteredTypeBreakdown.map((item) => {
+                const typeColor = COLORS[item.type as keyof typeof COLORS]
+                const typeName = TYPE_NAMES[item.type as keyof typeof TYPE_NAMES]
+                return (
+                  <div key={item.type} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <div
+                        className="w-2.5 h-2.5 rounded-sm"
+                        style={{ backgroundColor: typeColor }}
+                      ></div>
+                      <span className="font-medium">{typeName}</span>
+                    </div>
+                    <span className="font-bold tabular-nums">{item.average.toFixed(1)}%</span>
+                  </div>
+                )
+              })}
             </div>
-          </div>
-        </Card>
-      )}
+          </Card>
+        )}
+      </div>
 
       {/* Grades Table */}
       {currentClassData && (

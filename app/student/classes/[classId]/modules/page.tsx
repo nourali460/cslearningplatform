@@ -157,6 +157,7 @@ export default function StudentModulesPage() {
         <ModuleAccordion
           modules={modules}
           role="student"
+          mode="student"
           showCompletion={true}
         />
       )}

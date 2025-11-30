@@ -414,7 +414,7 @@ Minimum 250 words. Reply to at least 2 classmates, either adding to their exampl
     ])
     console.log(`✅ Created ${moduleItemTemplates.length} module item templates`)
 
-    // Step 7: Create professors
+    // Step 7: Create professors (auto-approved on creation)
     console.log('\n👨‍🏫 Creating professors...')
     const professors = await Promise.all([
       prisma.user.create({
@@ -424,7 +424,6 @@ Minimum 250 words. Reply to at least 2 classmates, either adding to their exampl
           role: 'professor',
           fullName: 'Dr. John Smith',
           usernameSchoolId: '100001',
-          isApproved: true,
         },
       }),
       prisma.user.create({
@@ -434,7 +433,6 @@ Minimum 250 words. Reply to at least 2 classmates, either adding to their exampl
           role: 'professor',
           fullName: 'Dr. Sarah Johnson',
           usernameSchoolId: '100002',
-          isApproved: true,
         },
       }),
     ])
@@ -450,7 +448,6 @@ Minimum 250 words. Reply to at least 2 classmates, either adding to their exampl
           role: 'student',
           fullName: 'Alice Anderson',
           usernameSchoolId: '200001',
-          isApproved: true,
         },
       }),
       prisma.user.create({
@@ -460,7 +457,6 @@ Minimum 250 words. Reply to at least 2 classmates, either adding to their exampl
           role: 'student',
           fullName: 'Bob Brown',
           usernameSchoolId: '200002',
-          isApproved: true,
         },
       }),
       prisma.user.create({
@@ -470,7 +466,6 @@ Minimum 250 words. Reply to at least 2 classmates, either adding to their exampl
           role: 'student',
           fullName: 'Charlie Clark',
           usernameSchoolId: '200003',
-          isApproved: true,
         },
       }),
       prisma.user.create({
@@ -480,7 +475,6 @@ Minimum 250 words. Reply to at least 2 classmates, either adding to their exampl
           role: 'student',
           fullName: 'Diana Davis',
           usernameSchoolId: '200004',
-          isApproved: true,
         },
       }),
     ])

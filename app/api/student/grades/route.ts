@@ -28,6 +28,7 @@ export async function GET() {
         classId: {
           in: enrolledClassIds,
         },
+        includeInGradebook: true, // ✅ Only show assessments that should be in gradebook
       },
       include: {
         class: {
